@@ -1,0 +1,55 @@
+police_station,total_records,sent_to_scita,scita_send_rate,low_scita_flag
+Madiwala,1563,1374,0.8791,False
+Bellandur,4964,4206,0.8473,False
+Byatarayanapura,4555,4179,0.9175,False
+Upparpet,34468,29607,0.859,False
+Shivajinagar,28044,25404,0.9059,False
+Pulikeshinagar(F.Town),4136,3745,0.9055,False
+Vijayanagara,14652,13480,0.92,False
+Cubbon Park,3255,2564,0.7877,False
+K.R. Pura,6546,5604,0.8561,False
+City Market,17646,15217,0.8623,False
+HSR Layout,5018,4305,0.8579,False
+Thalagattapura,870,733,0.8425,False
+HAL Old Airport,20819,18081,0.8685,False
+High ground,4951,4250,0.8584,False
+Kodigehalli,10916,5975,0.5474,True
+Peenya,974,830,0.8522,False
+Sheshadripuram,3090,2738,0.8861,False
+Jeevanbheemanagar,6736,6003,0.8912,False
+Electronic City,4333,3498,0.8073,False
+Banashankari,1202,988,0.822,False
+Mahadevapura,6187,5215,0.8429,False
+Banaswadi,3759,3391,0.9021,False
+Rajajinagar,10998,9118,0.8291,False
+Chikkajala,5834,5315,0.911,False
+Magadi Road,8558,7783,0.9094,False
+Kamakshipalya,1431,1256,0.8777,False
+Halasur,4011,3496,0.8716,False
+Malleshwaram,22200,18878,0.8504,False
+Mico Layout,2588,2250,0.8694,False
+Jayanagara,3813,3250,0.8523,False
+Chamarajpet,3795,3251,0.8567,False
+Halasuru Gate,6294,5672,0.9012,False
+Wilson Garden,3108,2524,0.8121,False
+Hebbala,3209,2301,0.717,True
+Chikkabanavara,785,653,0.8318,False
+R.T. Nagar,1736,1624,0.9355,False
+Jalahalli,1160,1045,0.9009,False
+Kengeri,464,417,0.8987,False
+Yeshwanthpura,2587,2362,0.913,False
+K.S. Layout,828,680,0.8213,False
+Ashok Nagar,3524,2977,0.8448,False
+V.V.Puram (C.Pet),1556,1389,0.8927,False
+Hennuru,892,588,0.6592,True
+Basavanagudi,3604,2970,0.8241,False
+Jnanabharathi,1063,986,0.9276,False
+Adugodi,3332,2823,0.8472,False
+Sadashivanagar,1445,1203,0.8325,False
+J.P. Nagar,1637,1493,0.912,False
+Hulimavu,2395,2023,0.8447,False
+K.G. Halli,892,799,0.8957,False
+Yelahanka,2440,2278,0.9336,False
+Whitefield,2303,2067,0.8975,False
+No Police Station,339,211,0.6224,True
+Devanahalli Airport,940,821,0.8734,False
