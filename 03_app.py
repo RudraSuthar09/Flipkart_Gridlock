@@ -76,6 +76,13 @@ def load_dark_fleet():
     return pd.read_csv(path)
 
 @st.cache_data
+def load_fleet_edges():
+    path = os.path.join(ROOT, "outputs", "fleet_graph_edges.csv")
+    if not os.path.exists(path):
+        return None
+    return pd.read_csv(path)
+
+@st.cache_data
 def load_violations():
     path = os.path.join(ROOT, "data", "violations_clean.csv")
     if not os.path.exists(path):
@@ -94,6 +101,7 @@ def load_station_funnel():
 
 pis_scores      = load_pis()
 dark_fleet      = load_dark_fleet()
+fleet_edges     = load_fleet_edges()
 violations_df   = load_violations()
 station_funnel  = load_station_funnel()
 
@@ -152,80 +160,161 @@ if page == "Operations Map":
             f"₹{pis_scores['loss_INR_per_day'].sum():,.0f}",
         )
 
-        # Folium map
+        # ── Folium map ──────────────────────────────────────────────────────
         m = folium.Map(
             location=[12.9716, 77.5946],
             zoom_start=12,
-            tiles="CartoDB positron",
+            tiles=None,
         )
+        folium.TileLayer(
+            tiles="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            name="Street Map",
+            max_zoom=19,
+            subdomains="abc",
+        ).add_to(m)
 
         junction_fg   = folium.FeatureGroup(name="Junctions", show=True)
         dark_fleet_fg = folium.FeatureGroup(name="Dark Fleet", show=False)
 
-        # Junction circles
+        # Top-10 junctions for hover tooltips
+        top10_names = set(pis_scores.nsmallest(10, "rank")["junction_name"])
+
+        # ── Junction circle markers ──────────────────────────────────────────
         for _, row in pis_scores.iterrows():
             if pd.isna(row["lat_mean"]) or pd.isna(row["lon_mean"]):
                 continue
+
             colour = _pis_colour(row["PIS_pct"])
-            radius = max(6, min(25, int(row["violation_volume"] / 500)))
-            popup_html = f"""
-            <div style="font-family:sans-serif;min-width:200px;">
-              <b style="font-size:13px;">{row['junction_name']}</b><br>
-              <span style="background:{colour};color:white;padding:2px 8px;
-                    border-radius:4px;font-size:11px;">{row['action_type']}</span>
-              <br><br>
-              <b>PIS Score:</b> {row['PIS']:.3f} (Rank #{int(row['rank'])})<br>
-              <b>Violations:</b> {int(row['violation_volume']):,}<br>
-              <b>Vehicle-hrs lost/day:</b> {row['vehicle_hours_lost_per_day']:.1f}<br>
-              <b>₹ Lost/day:</b> ₹{row['loss_INR_per_day']:,.0f}
-            </div>"""
-            folium.CircleMarker(
+
+            # Tier-based visual weight
+            if row["PIS_pct"] >= 0.85:
+                radius, fill_opacity, weight = 20, 0.85, 2
+            elif row["PIS_pct"] >= 0.60:
+                radius, fill_opacity, weight = 14, 0.75, 1.5
+            else:
+                radius, fill_opacity, weight = 8, 0.60, 1
+
+            popup_html = (
+                '<div style="font-family:Inter Tight,sans-serif;width:220px;padding:4px;">'
+                f'<div style="font-weight:600;font-size:13px;margin-bottom:6px;">{row["junction_name"]}</div>'
+                f'<div style="background:{colour};color:white;display:inline-block;'
+                f'padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;'
+                f'margin-bottom:8px;">{row["action_type"]}</div>'
+                '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+                '<span style="color:#666;font-size:12px;">PIS Score</span>'
+                f'<span style="font-weight:600;font-size:12px;">{row["PIS"]:.3f}</span>'
+                '</div>'
+                '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+                '<span style="color:#666;font-size:12px;">Rank</span>'
+                f'<span style="font-weight:600;font-size:12px;">#{int(row["rank"])} of {len(pis_scores)}</span>'
+                '</div>'
+                '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+                '<span style="color:#666;font-size:12px;">Violations</span>'
+                f'<span style="font-weight:600;font-size:12px;">{int(row["violation_volume"]):,}</span>'
+                '</div>'
+                '<div style="border-top:1px solid #eee;margin-top:8px;padding-top:6px;">'
+                '<div style="display:flex;justify-content:space-between;">'
+                '<span style="color:#666;font-size:12px;">&#8377; Lost / day</span>'
+                f'<span style="font-weight:600;font-size:12px;color:#E05252;">&#8377;{row["loss_INR_per_day"]:,.0f}</span>'
+                '</div></div></div>'
+            )
+
+            marker = folium.CircleMarker(
                 location=[row["lat_mean"], row["lon_mean"]],
                 radius=radius,
-                color=colour,
+                color="white",
                 fill=True,
                 fill_color=colour,
-                fill_opacity=0.7,
-                weight=1.5,
-                popup=folium.Popup(popup_html, max_width=250),
-            ).add_to(junction_fg)
+                fill_opacity=fill_opacity,
+                weight=weight,
+                popup=folium.Popup(popup_html, max_width=260),
+            )
 
-        # Dark Fleet markers (fleet leaders only)
-        if dark_fleet is not None:
+            # Hover tooltip for top-10 only
+            if row["junction_name"] in top10_names:
+                marker.add_child(folium.Tooltip(row["junction_name"], sticky=False))
+
+            marker.add_to(junction_fg)
+
+        # ── Dark Fleet markers (fleet leaders at their highest-weight junction) ──
+        if dark_fleet is not None and fleet_edges is not None:
             junc_loc = (
                 pis_scores.dropna(subset=["lat_mean", "lon_mean"])
                 .set_index("junction_name")[["lat_mean", "lon_mean"]]
             )
+            # Best junction per vehicle = highest weight edge
+            best_junc = (
+                fleet_edges.sort_values("weight", ascending=False)
+                .drop_duplicates(subset="vehicle_number", keep="first")
+                .set_index("vehicle_number")["junction_name"]
+            )
             for _, fl_row in dark_fleet[dark_fleet["is_fleet_leader"]].iterrows():
-                junctions = str(fl_row["junction_list"]).split(";")
-                for junc in junctions:
-                    junc = junc.strip()
-                    if junc in junc_loc.index:
-                        jlat = junc_loc.loc[junc, "lat_mean"]
-                        jlon = junc_loc.loc[junc, "lon_mean"]
-                        folium.Marker(
-                            location=[jlat, jlon],
-                            popup=folium.Popup(
-                                f"Cluster {fl_row['fleet_cluster_id']} | "
-                                f"{fl_row['vehicle_number']} | "
-                                f"{fl_row['total_hits']} hits",
-                                max_width=200,
-                            ),
-                            icon=folium.DivIcon(
-                                html='<div style="background:#111111;color:white;'
-                                     'border-radius:50%;width:20px;height:20px;'
-                                     'display:flex;align-items:center;'
-                                     'justify-content:center;font-weight:700;'
-                                     'font-size:12px;border:2px solid white;">F</div>',
-                                icon_size=(20, 20),
-                                icon_anchor=(10, 10),
-                            ),
-                        ).add_to(dark_fleet_fg)
+                vn = fl_row["vehicle_number"]
+                junc = best_junc.get(vn)
+                if junc is None or junc not in junc_loc.index:
+                    continue
+                jlat = junc_loc.loc[junc, "lat_mean"]
+                jlon = junc_loc.loc[junc, "lon_mean"]
+                folium.Marker(
+                    location=[jlat, jlon],
+                    tooltip=folium.Tooltip(
+                        f"Fleet cluster {fl_row['fleet_cluster_id']} — {fl_row['total_hits']} hits",
+                        sticky=False,
+                    ),
+                    popup=folium.Popup(
+                        f"<b>{fl_row['vehicle_number']}</b><br>"
+                        f"Cluster {fl_row['fleet_cluster_id']} | "
+                        f"{fl_row['total_hits']} total hits | "
+                        f"{fl_row['distinct_junctions']} junctions",
+                        max_width=220,
+                    ),
+                    icon=folium.DivIcon(
+                        html=(
+                            '<div style="background:#363236;color:#F7B558;'
+                            'border-radius:50%;width:28px;height:28px;'
+                            'display:flex;align-items:center;justify-content:center;'
+                            'font-weight:700;font-size:13px;'
+                            'border:2px solid #F7B558;'
+                            'box-shadow:0 2px 6px rgba(0,0,0,0.4);">F</div>'
+                        ),
+                        icon_size=(28, 28),
+                        icon_anchor=(14, 14),
+                    ),
+                ).add_to(dark_fleet_fg)
+
+        # ── Legend ──────────────────────────────────────────────────────────
+        legend_html = """
+        <div style="position:fixed;bottom:30px;right:10px;background:white;
+                    padding:12px 16px;border-radius:10px;
+                    box-shadow:0 2px 10px rgba(0,0,0,0.2);
+                    font-family:sans-serif;font-size:12px;z-index:9999;">
+          <div style="font-weight:600;margin-bottom:8px;">Parking Impact Score</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:14px;height:14px;border-radius:50%;background:#E05252;"></div>
+            Critical (top 15%)
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:14px;height:14px;border-radius:50%;background:#F7B558;"></div>
+            High (top 40%)
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:14px;height:14px;border-radius:50%;background:#A5D48C;"></div>
+            Monitor
+          </div>
+          <div style="border-top:1px solid #eee;padding-top:8px;
+                      display:flex;align-items:center;gap:8px;">
+            <div style="width:14px;height:14px;border-radius:50%;
+                        background:#363236;border:2px solid #F7B558;"></div>
+            Dark fleet
+          </div>
+        </div>"""
+        m.get_root().html.add_child(folium.Element(legend_html))
 
         junction_fg.add_to(m)
         dark_fleet_fg.add_to(m)
         folium.LayerControl().add_to(m)
-        st_folium(m, use_container_width=True, height=500, returned_objects=[])
+        st_folium(m, use_container_width=True, height=600, returned_objects=[])
 
         # Top 10 table
         st.markdown(
@@ -578,8 +667,15 @@ elif page == "Patrol Planner":
         m2 = folium.Map(
             location=[12.9716, 77.5946],
             zoom_start=12,
-            tiles="CartoDB positron",
+            tiles=None,
         )
+        folium.TileLayer(
+            tiles="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            name="Street Map",
+            max_zoom=19,
+            subdomains="abc",
+        ).add_to(m2)
         for _, row in top20.iterrows():
             if pd.notna(row["lat_mean"]) and pd.notna(row["lon_mean"]):
                 folium.Marker(
