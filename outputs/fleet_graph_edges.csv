@@ -1,0 +1,257 @@
+vehicle_number,junction_name,weight
+FKN00GL0147,"BTP083 - AS Char Street, Mysore Road",1
+FKN00GL0147,BTP092 - Bangalore Builders Junction,1
+FKN00GL0147,BTP104 - Medical College Circle,2
+FKN00GL0147,BTP118 - Basappa Circle,9
+FKN00GL10321,10th Cross Road,3
+FKN00GL10321,8th A Main Road,8
+FKN00GL10321,Unnamed Road,1
+FKN00GL10551,BTP044 - Sagar Theatre Junction,1
+FKN00GL10551,BTP058 - Subbanna Junction,3
+FKN00GL10551,Bellary Road,6
+FKN00GL11030,BTP044 - Sagar Theatre Junction,11
+FKN00GL11030,BTP058 - Subbanna Junction,3
+FKN00GL11030,Kalidasa Road,1
+FKN00GL1115,"BTP026 - 1st Block Junction, Rajajinagar",2
+FKN00GL1115,"BTP182 - 19th Main Junction, Rajajinagar",7
+FKN00GL1115,BTP192 - Urvashi Theater,1
+FKN00GL11617,3rd Cross Road,2
+FKN00GL11617,BTP032 - Windsor Circle,9
+FKN00GL11617,"BTP033 - Sophia High School, Sankey Road",1
+FKN00GL11796,BTP048 - Shanthala Junction,2
+FKN00GL11796,BTP051 - Safina Plaza Junction,1
+FKN00GL11796,BTP082 - KR Market Junction,8
+FKN00GL1243,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",15
+FKN00GL1243,"BTP170 - Dr. Bheem Rao Palace, Chord Road",2
+FKN00GL1243,"BTP204 - ESI Hospital, Rajajinagar",3
+FKN00GL12904,Cambridge Road,1
+FKN00GL12904,Trinity Church Road,9
+FKN00GL12904,Unnamed Road,7
+FKN00GL14087,BTP100 - Richmond Circle,1
+FKN00GL14087,BTP172 - Nanjappa Circle,9
+FKN00GL14087,Residency Road,1
+FKN00GL1473,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",1
+FKN00GL1473,BTP018 - Dhobi Ghat Junction,1
+FKN00GL1473,"BTP170 - Dr. Bheem Rao Palace, Chord Road",14
+FKN00GL15108,BTP043 - Upparpet Junction,3
+FKN00GL15108,BTP044 - Sagar Theatre Junction,2
+FKN00GL15108,BTP082 - KR Market Junction,1
+FKN00GL15108,Unnamed Road,4
+FKN00GL1530,BTP032 - Windsor Circle,12
+FKN00GL1530,Link Road,1
+FKN00GL1530,Unnamed Road,1
+FKN00GL15781,4th Main Road,1
+FKN00GL15781,BTP051 - Safina Plaza Junction,14
+FKN00GL15781,Unnamed Road,1
+FKN00GL16020,BTP038 - Mysore Bank Junction,1
+FKN00GL16020,BTP044 - Sagar Theatre Junction,6
+FKN00GL16020,BTP058 - Subbanna Junction,8
+FKN00GL16020,Kalidasa Road,1
+FKN00GL16746,1st Main Road,1
+FKN00GL16746,Hosur Road,11
+FKN00GL16746,Manipal County Road,2
+FKN00GL16746,Unnamed Road,8
+FKN00GL17388,BTP032 - Windsor Circle,18
+FKN00GL17388,"BTP033 - Sophia High School, Sankey Road",4
+FKN00GL17388,BTP051 - Safina Plaza Junction,1
+FKN00GL17572,BTP040 - Elite Junction,14
+FKN00GL17572,BTP057 - Anand Rao Junction,1
+FKN00GL17572,BTP058 - Subbanna Junction,1
+FKN00GL17863,BTP040 - Elite Junction,38
+FKN00GL17863,BTP044 - Sagar Theatre Junction,2
+FKN00GL17863,BTP214 - 5th Main Chamrajpet  Junction,1
+FKN00GL18309,BTP051 - Safina Plaza Junction,5
+FKN00GL18309,Saint John's Church Road,1
+FKN00GL18309,Unnamed Road,14
+FKN00GL18326,1st Cross Road,9
+FKN00GL18326,GKVK Road,3
+FKN00GL18326,Unnamed Road,3
+FKN00GL18528,1st Cross Road,13
+FKN00GL18528,GKVK Road,6
+FKN00GL18528,Unnamed Road,2
+FKN00GL18629,1st Cross Road,14
+FKN00GL18629,GKVK Road,3
+FKN00GL18629,Unnamed Road,5
+FKN00GL18632,1st Cross Road,5
+FKN00GL18632,GKVK Road,5
+FKN00GL18632,Unnamed Road,1
+FKN00GL21231,BTP038 - Mysore Bank Junction,1
+FKN00GL21231,BTP044 - Sagar Theatre Junction,9
+FKN00GL21231,BTP192 - Urvashi Theater,1
+FKN00GL21231,Unnamed Road,1
+FKN00GL21328,10th Cross Road,1
+FKN00GL21328,BTP027 - Modi Bridge Junction,2
+FKN00GL21328,BTP205 - Modi Hospital Junction,10
+FKN00GL21950,1st Cross Road,8
+FKN00GL21950,GKVK Road,1
+FKN00GL21950,Unnamed Road,1
+FKN00GL22063,1st Cross Road,13
+FKN00GL22063,GKVK Road,5
+FKN00GL22063,Unnamed Road,3
+FKN00GL23020,3rd Cross Road,4
+FKN00GL23020,BTP032 - Windsor Circle,9
+FKN00GL23020,"BTP033 - Sophia High School, Sankey Road",1
+FKN00GL23079,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",8
+FKN00GL23079,"BTP170 - Dr. Bheem Rao Palace, Chord Road",8
+FKN00GL23079,"BTP204 - ESI Hospital, Rajajinagar",5
+FKN00GL23454,Gear School road,8
+FKN00GL23454,Old Madras Road,1
+FKN00GL23454,Unnamed Road,1
+FKN00GL26291,1st Cross Road,8
+FKN00GL26291,1st Main Road,1
+FKN00GL26291,GKVK Road,4
+FKN00GL26291,Unnamed Road,1
+FKN00GL27389,BTP040 - Elite Junction,1
+FKN00GL27389,BTP044 - Sagar Theatre Junction,1
+FKN00GL27389,BTP058 - Subbanna Junction,7
+FKN00GL27389,Sankey Road,1
+FKN00GL28774,BTP023 - Mahalaxmi Layout Entrance,8
+FKN00GL28774,Chord Road,2
+FKN00GL28774,Unnamed Road,1
+FKN00GL2996,BTP032 - Windsor Circle,12
+FKN00GL2996,"BTP033 - Sophia High School, Sankey Road",3
+FKN00GL2996,BTP058 - Subbanna Junction,1
+FKN00GL3007,10th Cross Road,2
+FKN00GL3007,BTP032 - Windsor Circle,9
+FKN00GL3007,"BTP033 - Sophia High School, Sankey Road",2
+FKN00GL3018,BTP020 - Hosahalli Metro Station,18
+FKN00GL3018,BTP068 - Veeresh Theatre Junction,1
+FKN00GL3018,BTP096 - Gali Anjaneya Temple,1
+FKN00GL31097,1st Cross Road,12
+FKN00GL31097,GKVK Road,1
+FKN00GL31097,Unnamed Road,3
+FKN00GL31294,1st Cross Road,8
+FKN00GL31294,GKVK Road,5
+FKN00GL31294,No Junction,1
+FKN00GL31294,Unnamed Road,1
+FKN00GL3135,1st Cross Road,4
+FKN00GL3135,GKVK Road,6
+FKN00GL3135,No Junction,1
+FKN00GL3688,1st Cross Road,13
+FKN00GL3688,BTP135 - UCO Bank Junction,2
+FKN00GL3688,GKVK Road,4
+FKN00GL3688,Unnamed Road,1
+FKN00GL41563,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",13
+FKN00GL41563,"BTP170 - Dr. Bheem Rao Palace, Chord Road",1
+FKN00GL41563,"BTP204 - ESI Hospital, Rajajinagar",3
+FKN00GL41676,Manipal County Road,8
+FKN00GL41676,New Horizon College Road,1
+FKN00GL41676,Unnamed Road,1
+FKN00GL41714,BTP044 - Sagar Theatre Junction,1
+FKN00GL41714,BTP045 - Danvanthri Road Junction,2
+FKN00GL41714,BTP057 - Anand Rao Junction,3
+FKN00GL41714,BTP058 - Subbanna Junction,1
+FKN00GL41714,Peenya Inner Ring Road,1
+FKN00GL41714,Unnamed Road,2
+FKN00GL41714,Whitefield Road,1
+FKN00GL4424,1st Cross Road,41
+FKN00GL4424,GKVK Road,9
+FKN00GL4424,Unnamed Road,5
+FKN00GL4480,1st Cross Road,15
+FKN00GL4480,GKVK Road,3
+FKN00GL4480,Unnamed Road,1
+FKN00GL4519,BTP038 - Mysore Bank Junction,1
+FKN00GL4519,BTP044 - Sagar Theatre Junction,1
+FKN00GL4519,BTP045 - Danvanthri Road Junction,1
+FKN00GL4519,BTP057 - Anand Rao Junction,4
+FKN00GL4519,BTP058 - Subbanna Junction,4
+FKN00GL47241,BTP040 - Elite Junction,1
+FKN00GL47241,BTP043 - Upparpet Junction,1
+FKN00GL47241,BTP044 - Sagar Theatre Junction,1
+FKN00GL47241,Unnamed Road,7
+FKN00GL5034,New Horizon College Road,6
+FKN00GL5034,Service Road,5
+FKN00GL5034,Unnamed Road,1
+FKN00GL52584,1st Cross Road,8
+FKN00GL52584,GKVK Road,1
+FKN00GL52584,No Junction,1
+FKN00GL52672,1st Cross Road,7
+FKN00GL52672,GKVK Road,2
+FKN00GL52672,Unnamed Road,3
+FKN00GL5280,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",13
+FKN00GL5280,"BTP170 - Dr. Bheem Rao Palace, Chord Road",3
+FKN00GL5280,"BTP204 - ESI Hospital, Rajajinagar",1
+FKN00GL52826,Bellary Road,1
+FKN00GL52826,Sanjaynagar Main Road,1
+FKN00GL52826,Unnamed Road,8
+FKN00GL5756,BTP020 - Hosahalli Metro Station,11
+FKN00GL5756,BTP068 - Veeresh Theatre Junction,1
+FKN00GL5756,BTP069 - MC Circle,1
+FKN00GL61150,BTP040 - Elite Junction,8
+FKN00GL61150,BTP044 - Sagar Theatre Junction,2
+FKN00GL61150,BTP045 - Danvanthri Road Junction,1
+FKN00GL61648,BTP040 - Elite Junction,2
+FKN00GL61648,BTP044 - Sagar Theatre Junction,7
+FKN00GL61648,BTP058 - Subbanna Junction,2
+FKN00GL6219,BTP023 - Mahalaxmi Layout Entrance,17
+FKN00GL6219,"BTP070 - Cholurpalya Junction, Magadi Road",1
+FKN00GL6219,"BTP095 - Satellite Bus Stand, Mysore Road",1
+FKN00GL62335,8th A Main Road,10
+FKN00GL62335,"BTP001 - 10th Cross, Dr. Rajkumar Road",5
+FKN00GL62335,BTP061 - Bhashyam Circle,1
+FKN00GL6235,BTP040 - Elite Junction,3
+FKN00GL6235,BTP045 - Danvanthri Road Junction,1
+FKN00GL6235,BTP057 - Anand Rao Junction,8
+FKN00GL63327,1st Cross Road,9
+FKN00GL63327,GKVK Road,3
+FKN00GL63327,Unnamed Road,2
+FKN00GL6423,1st Cross Road,11
+FKN00GL6423,GKVK Road,6
+FKN00GL6423,Unnamed Road,2
+FKN00GL6443,1st Cross Road,12
+FKN00GL6443,GKVK Road,9
+FKN00GL6443,Unnamed Road,2
+FKN00GL6630,1st Cross Road,12
+FKN00GL6630,GKVK Road,2
+FKN00GL6630,Unnamed Road,2
+FKN00GL6652,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",3
+FKN00GL6652,"BTP170 - Dr. Bheem Rao Palace, Chord Road",5
+FKN00GL6652,"BTP204 - ESI Hospital, Rajajinagar",10
+FKN00GL6780,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",1
+FKN00GL6780,"BTP170 - Dr. Bheem Rao Palace, Chord Road",1
+FKN00GL6780,"BTP182 - 19th Main Junction, Rajajinagar",14
+FKN00GL6945,BTP032 - Windsor Circle,8
+FKN00GL6945,"BTP033 - Sophia High School, Sankey Road",2
+FKN00GL6945,BTP063 - Siddalingaiah Circle,1
+FKN00GL73104,BTP040 - Elite Junction,9
+FKN00GL73104,BTP057 - Anand Rao Junction,2
+FKN00GL73104,BTP058 - Subbanna Junction,1
+FKN00GL7335,BTP078 - NR Square Junction,5
+FKN00GL7335,BTP079 - Town Hall Junction,2
+FKN00GL7335,"BTP080 - NR Road, SP Road Junction",5
+FKN00GL76754,BTP032 - Windsor Circle,11
+FKN00GL76754,"BTP033 - Sophia High School, Sankey Road",1
+FKN00GL76754,BTP054 - Shivananda Circle,1
+FKN00GL7945,1st Cross Road,13
+FKN00GL7945,GKVK Road,2
+FKN00GL7945,Unnamed Road,1
+FKN00GL8041,1st Cross Road,16
+FKN00GL8041,GKVK Road,8
+FKN00GL8041,Unnamed Road,3
+FKN00GL8043,1st Cross Road,17
+FKN00GL8043,GKVK Road,3
+FKN00GL8043,Unnamed Road,1
+FKN00GL8052,1st Cross Road,8
+FKN00GL8052,GKVK Road,1
+FKN00GL8052,Unnamed Road,2
+FKN00GL8131,BTP018 - Dhobi Ghat Junction,1
+FKN00GL8131,BTP040 - Elite Junction,1
+FKN00GL8131,"BTP170 - Dr. Bheem Rao Palace, Chord Road",10
+FKN00GL8154,1st Cross Road,10
+FKN00GL8154,GKVK Road,4
+FKN00GL8154,Unnamed Road,3
+FKN00GL8473,BTP044 - Sagar Theatre Junction,1
+FKN00GL8473,"BTP083 - AS Char Street, Mysore Road",8
+FKN00GL8473,Kalidasa Road,1
+FKN00GL8816,BTP051 - Safina Plaza Junction,10
+FKN00GL8816,Dickenson Road,1
+FKN00GL8816,Unnamed Road,1
+FKN00GL9599,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",8
+FKN00GL9599,BTP048 - Shanthala Junction,1
+FKN00GL9599,"BTP170 - Dr. Bheem Rao Palace, Chord Road",1
+FKN00GL9606,"BTP011 - RR Kalyana Mantapa, Dr. Rajkumar Road",17
+FKN00GL9606,"BTP170 - Dr. Bheem Rao Palace, Chord Road",1
+FKN00GL9606,"BTP204 - ESI Hospital, Rajajinagar",1
+FKN00GL96078,Amruth Nagar Main Road,1
+FKN00GL96078,BTP032 - Windsor Circle,10
+FKN00GL96078,"BTP033 - Sophia High School, Sankey Road",2
