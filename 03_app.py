@@ -131,11 +131,29 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 st.sidebar.markdown("---")
+
+# Session-state page navigation (allows buttons to switch pages)
+if "page" not in st.session_state:
+    st.session_state.page = "Operations Map"
+
+RADIO_PAGES = [
+    "Operations Map", "Enforcement Funnel", "Dark Fleet",
+    "Junction Deep-Dive", "What-If Simulator", "Patrol Planner",
+]
+
+# If session_state was set by a button, pre-select that page in the radio
+default_idx = (
+    RADIO_PAGES.index(st.session_state.page)
+    if st.session_state.page in RADIO_PAGES else 0
+)
 page = st.sidebar.radio(
     "",
-    ["Operations Map", "Enforcement Funnel", "Dark Fleet",
-     "Junction Deep-Dive", "What-If Simulator", "Patrol Planner"],
+    RADIO_PAGES,
+    index=default_idx,
+    key="page_radio",
 )
+# Keep session_state in sync with the radio
+st.session_state.page = page
 
 # ===========================================================================
 # PAGE: Operations Map
@@ -347,57 +365,89 @@ if page == "Operations Map":
 # PAGE: Enforcement Funnel
 # ===========================================================================
 elif page == "Enforcement Funnel":
-    st.title("Enforcement pipeline — where it breaks")
+    st.title("The enforcement pipeline — where it breaks")
 
+    # ── Callout KPI cards ────────────────────────────────────────────────────
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(
             f'<div style="background:#fde8e8;border-left:4px solid {DANGER};'
-            f'padding:12px;border-radius:8px;">'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:13px;font-weight:700;color:{DANGER};">CRITICAL</span><br>'
             "<b>0 enforcement actions recorded</b><br>"
-            "across 298,449 violations"
+            "<span style='color:#555;font-size:13px;'>across 298,449 violations</span>"
             "</div>",
             unsafe_allow_html=True,
         )
     with c2:
         st.markdown(
             f'<div style="background:#fef5e7;border-left:4px solid {AMBER};'
-            f'padding:12px;border-radius:8px;">'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:13px;font-weight:700;color:#B45309;">TIMING GAP</span><br>'
             "<b>60.1% of captures happen at 5am</b><br>"
-            "roads are empty"
+            "<span style='color:#555;font-size:13px;'>roads are empty — no congestion impact</span>"
             "</div>",
             unsafe_allow_html=True,
         )
     with c3:
         st.markdown(
             f'<div style="background:#fef5e7;border-left:4px solid {AMBER};'
-            f'padding:12px;border-radius:8px;">'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:13px;font-weight:700;color:#B45309;">STATION FAILURE</span><br>'
             "<b>Kodigehalli sends only 54.7%</b><br>"
-            "of violations to SCITA"
+            "<span style='color:#555;font-size:13px;'>of violations to SCITA</span>"
             "</div>",
             unsafe_allow_html=True,
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Funnel chart
+    # ── Section A: Funnel chart ───────────────────────────────────────────────
+    st.subheader("Section A — Pipeline stages")
+
     fig_funnel = go.Figure(
         go.Funnel(
             y=["Captured", "Validated (Approved)", "Sent to SCITA", "Action Taken"],
+            # Use 1 for Action Taken so it renders as a visible sliver
             x=[298449, 115400, 255893, 1],
             textinfo="value+percent initial",
+            textposition="inside",
             marker=dict(color=[CHARCOAL, AMBER, AMBER, DANGER]),
+            connector=dict(line=dict(color="rgba(0,0,0,0.08)", width=1)),
         )
     )
+    # Annotate the sliver bar with "0 actions" in red above it
+    fig_funnel.add_annotation(
+        x=1,  # right of the funnel values axis
+        y="Action Taken",
+        text="<b>0 actions</b>",
+        showarrow=True,
+        arrowhead=2,
+        arrowcolor=DANGER,
+        font=dict(color=DANGER, size=13, family="Inter Tight"),
+        ax=80,
+        ay=0,
+        bgcolor="#fde8e8",
+        bordercolor=DANGER,
+        borderwidth=1,
+        borderpad=4,
+    )
     fig_funnel.update_layout(
-        title="The 4-stage enforcement pipeline",
+        title=dict(
+            text="The enforcement pipeline — where it breaks",
+            font=dict(size=16, family="Inter Tight"),
+        ),
         paper_bgcolor=SURFACE,
         plot_bgcolor=SURFACE,
         font_family="Inter Tight",
+        height=380,
+        margin=dict(l=0, r=120, t=60, b=20),
     )
     st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # 24-hour bar chart
+    # ── Section B: 24-hour violation pattern ─────────────────────────────────
+    st.subheader("Section B — 24-hour violation pattern")
+
     if violations_df is not None:
         hour_df = (
             violations_df["hour"]
@@ -408,37 +458,141 @@ elif page == "Enforcement Funnel":
             .reset_index()
         )
         hour_df.columns = ["hour", "count"]
+
         colours_24h = [
             DANGER if h <= 6 else (SAGE if 9 <= h <= 18 else "#CCCCCC")
             for h in hour_df["hour"]
         ]
-        fig_hour = px.bar(
-            hour_df,
-            x="hour",
-            y="count",
-            title="Violations by hour of day",
+
+        fig_hour = go.Figure(
+            go.Bar(
+                x=hour_df["hour"],
+                y=hour_df["count"],
+                marker_color=colours_24h,
+                hovertemplate="Hour %{x}:00 — %{y:,} violations<extra></extra>",
+            )
         )
-        fig_hour.update_traces(marker_color=colours_24h)
+
+        # Red band 0-6
         fig_hour.add_vrect(
             x0=-0.5, x1=6.5,
-            fillcolor=DANGER, opacity=0.08,
-            annotation_text="60% captured here (0–6am)",
-            annotation_position="top left",
+            fillcolor=DANGER, opacity=0.10,
+            layer="below", line_width=0,
         )
+        fig_hour.add_annotation(
+            x=3, y=hour_df["count"].max() * 0.97,
+            text="<b>60% of captures</b><br>roads are empty",
+            showarrow=False,
+            font=dict(color=DANGER, size=11, family="Inter Tight"),
+            align="center",
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor=DANGER,
+            borderwidth=1,
+            borderpad=4,
+        )
+
+        # Green band 9-18
         fig_hour.add_vrect(
             x0=8.5, x1=18.5,
-            fillcolor=SAGE, opacity=0.08,
-            annotation_text="Peak congestion (9am–6pm)",
-            annotation_position="top right",
+            fillcolor=SAGE, opacity=0.10,
+            layer="below", line_width=0,
         )
+        fig_hour.add_annotation(
+            x=13.5, y=hour_df["count"].max() * 0.97,
+            text="<b>Peak congestion</b><br>only 2.6% captured",
+            showarrow=False,
+            font=dict(color="#166534", size=11, family="Inter Tight"),
+            align="center",
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor=SAGE,
+            borderwidth=1,
+            borderpad=4,
+        )
+
         fig_hour.update_layout(
+            title="Violations captured by hour of day",
             paper_bgcolor=SURFACE,
             plot_bgcolor=SURFACE,
             font_family="Inter Tight",
-            xaxis_title="Hour of day",
-            yaxis_title="Violations",
+            xaxis=dict(title="Hour of day", dtick=1, gridcolor="#E8E8E6"),
+            yaxis=dict(title="Violation count", gridcolor="#E8E8E6"),
+            bargap=0.15,
+            height=380,
+            margin=dict(l=0, r=0, t=50, b=40),
         )
         st.plotly_chart(fig_hour, use_container_width=True)
+    else:
+        st.info("violations_clean.csv not loaded — run 01_clean_and_resolve.py first.")
+
+    # ── Section C: Police-station SCITA send-rate ─────────────────────────────
+    st.subheader("Section C — SCITA send-rate by police station")
+
+    if station_funnel is not None:
+        sf = station_funnel.sort_values("scita_send_rate", ascending=True).copy()
+        sf["colour"] = sf["scita_send_rate"].apply(
+            lambda r: DANGER if r < 0.75 else (AMBER if r < 0.85 else SAGE)
+        )
+
+        fig_station = go.Figure(
+            go.Bar(
+                x=sf["scita_send_rate"],
+                y=sf["police_station"],
+                orientation="h",
+                marker_color=sf["colour"].tolist(),
+                text=[f"{r*100:.1f}%" for r in sf["scita_send_rate"]],
+                textposition="outside",
+                hovertemplate="%{y}: %{x:.1%}<extra></extra>",
+            )
+        )
+
+        # Reference line at 75%
+        fig_station.add_vline(
+            x=0.75,
+            line_width=2,
+            line_dash="dash",
+            line_color=CHARCOAL,
+            annotation_text="75% threshold",
+            annotation_position="top right",
+            annotation_font=dict(color=CHARCOAL, size=11, family="Inter Tight"),
+        )
+
+        # Annotate Kodigehalli in red if it's in the dataset
+        kodige_rows = sf[sf["police_station"].str.contains("Kodigehalli", case=False, na=False)]
+        if not kodige_rows.empty:
+            kr = kodige_rows.iloc[0]
+            fig_station.add_annotation(
+                x=kr["scita_send_rate"] + 0.01,
+                y=kr["police_station"],
+                text="<b>Kodigehalli ⚠</b>",
+                showarrow=True,
+                arrowhead=2,
+                arrowcolor=DANGER,
+                font=dict(color=DANGER, size=11, family="Inter Tight"),
+                ax=80, ay=0,
+                bgcolor="#fde8e8",
+                bordercolor=DANGER,
+                borderwidth=1,
+                borderpad=3,
+            )
+
+        fig_station.update_layout(
+            title="SCITA send-rate per police station (sorted ascending)",
+            paper_bgcolor=SURFACE,
+            plot_bgcolor=SURFACE,
+            font_family="Inter Tight",
+            xaxis=dict(
+                title="Send rate",
+                tickformat=".0%",
+                range=[0, 1.15],
+                gridcolor="#E8E8E6",
+            ),
+            yaxis=dict(title="", automargin=True),
+            height=max(350, len(sf) * 26),
+            margin=dict(l=0, r=60, t=50, b=40),
+        )
+        st.plotly_chart(fig_station, use_container_width=True)
+    else:
+        st.info("station_funnel.csv not loaded — run 01_clean_and_resolve.py first.")
 
 # ===========================================================================
 # PAGE: Dark Fleet
@@ -486,67 +640,142 @@ elif page == "Dark Fleet":
 # ===========================================================================
 elif page == "What-If Simulator":
     st.title("What-If Enforcement Simulator")
-    st.markdown("*Move the sliders. Watch the city save money.*")
+    st.markdown("*Move the sliders — watch the city save money.*")
 
     if pis_scores is None:
         st.warning("PIS scores not loaded.")
     else:
         left, right = st.columns([1, 2])
 
+        # ── Left column: controls ─────────────────────────────────────────────
         with left:
+            st.markdown(
+                f'<div style="background:{CHARCOAL};border-radius:12px;padding:20px 18px;'
+                f'margin-bottom:12px;">'
+                f'<p style="color:#A0A0A0;font-size:12px;font-weight:600;'
+                f'text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">'
+                f'Simulation Controls</p>',
+                unsafe_allow_html=True,
+            )
             enforcement_rate = st.slider(
-                "Enforcement action rate", 0, 100, 0, format="%d%%"
+                "Enforcement action rate (%)", 0, 100, 0, format="%d%%",
+                key="wif_enf",
             )
             scope = st.selectbox(
-                "Target junctions", ["Top 5", "Top 10", "Top 20", "All"]
+                "Target junctions", ["Top 5", "Top 10", "Top 20", "All"],
+                key="wif_scope",
             )
-            st.markdown("---")
+            officers = st.slider(
+                "Officers deployed", 1, 10, 3, key="wif_officers",
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
             st.markdown(
-                f"**Current state:** 0% enforcement = "
-                f"₹{pis_scores['loss_INR_per_day'].sum():,.0f} lost daily"
+                f'<div style="background:#1E1B1E;border-radius:8px;padding:12px 14px;'
+                f'border-left:3px solid {DANGER};">'
+                f'<span style="color:#A0A0A0;font-size:12px;">Current state (0% enforcement)</span><br>'
+                f'<span style="color:{DANGER};font-weight:700;font-size:15px;">'
+                f'₹{pis_scores["loss_INR_per_day"].sum():,.0f} lost / day</span>'
+                f'</div>',
+                unsafe_allow_html=True,
             )
 
+        # ── Right column: results ─────────────────────────────────────────────
         with right:
             n_map = {"Top 5": 5, "Top 10": 10, "Top 20": 20, "All": len(pis_scores)}
             n = n_map[scope]
             selected = pis_scores.nsmallest(n, "rank")
 
-            vh_saved      = (enforcement_rate / 100) * selected["vehicle_hours_lost_per_day"].sum()
-            inr_day       = vh_saved * 150
-            inr_year      = inr_day * 365
-            total_vh      = max(pis_scores["vehicle_hours_lost_per_day"].sum(), 1)
-            congestion_pct = vh_saved / total_vh * 100
+            total_vh = max(pis_scores["vehicle_hours_lost_per_day"].sum(), 1)
+            vh_saved           = (enforcement_rate / 100) * selected["vehicle_hours_lost_per_day"].sum()
+            inr_saved_day      = vh_saved * 150
+            inr_saved_year     = inr_saved_day * 365
+            violations_prevented = (enforcement_rate / 100) * selected["violation_volume"].sum() * 0.3
+            congestion_reduction = vh_saved / total_vh * 100
 
-            rc1, rc2, rc3, rc4 = st.columns(4)
-            rc1.metric("Hrs saved / day",   f"{vh_saved:,.1f}")
-            rc2.metric("₹ saved / day", f"₹{inr_day:,.0f}")
-            rc3.metric("₹ saved / year",f"₹{inr_year:,.0f}")
-            rc4.metric("Congestion drop",   f"{congestion_pct:.1f}%")
+            # 4 metric cards — dark charcoal background, amber values
+            def _dark_metric(label, value, icon=""):
+                return (
+                    f'<div style="background:{CHARCOAL};border-radius:10px;'
+                    f'padding:16px 18px;text-align:center;">'
+                    f'<div style="color:#A0A0A0;font-size:11px;font-weight:600;'
+                    f'text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">{icon} {label}</div>'
+                    f'<div style="color:{AMBER};font-size:22px;font-weight:700;'
+                    f'letter-spacing:-0.5px;">{value}</div>'
+                    f'</div>'
+                )
 
+            mc1, mc2, mc3, mc4 = st.columns(4)
+            mc1.markdown(_dark_metric("Vehicle-hrs saved / day", f"{vh_saved:,.1f} hrs", "⏱"), unsafe_allow_html=True)
+            mc2.markdown(_dark_metric("₹ Saved per day",          f"₹{inr_saved_day:,.0f}", "💰"), unsafe_allow_html=True)
+            mc3.markdown(_dark_metric("₹ Saved per year",         f"₹{inr_saved_year:,.0f}", "📈"), unsafe_allow_html=True)
+            mc4.markdown(_dark_metric("Congestion reduction",      f"{congestion_reduction:.1f}%", "🚦"), unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Bar chart: amber selected, grey unselected (top 20 shown)
             chart_df = pis_scores.copy()
             chart_df["selected"] = chart_df["rank"] <= n
-            chart_df["colour"]   = chart_df["selected"].map(
-                {True: AMBER, False: "#DDDDDD"}
-            )
+            chart_df["colour"] = chart_df["selected"].map({True: AMBER, False: "#DDDDDD"})
             top20_chart = chart_df.head(20)
-            fig_bar = px.bar(
-                top20_chart,
-                x="junction_name",
-                y="PIS",
-                title=f"Top 20 junctions — {n} targeted (amber)",
-            )
-            fig_bar.update_traces(
-                marker_color=top20_chart["colour"].tolist()
-            )
+
+            fig_bar = go.Figure()
+            # Grey bars first (unselected)
+            grey_df = top20_chart[~top20_chart["selected"]]
+            if not grey_df.empty:
+                fig_bar.add_trace(go.Bar(
+                    x=grey_df["junction_name"],
+                    y=grey_df["PIS"],
+                    marker_color="#DDDDDD",
+                    name="Not targeted",
+                    hovertemplate="%{x}<br>PIS: %{y:.3f}<extra></extra>",
+                ))
+            # Amber bars (selected)
+            amber_df = top20_chart[top20_chart["selected"]]
+            if not amber_df.empty:
+                fig_bar.add_trace(go.Bar(
+                    x=amber_df["junction_name"],
+                    y=amber_df["PIS"],
+                    marker_color=AMBER,
+                    name=f"Targeted (top {n})",
+                    hovertemplate="%{x}<br>PIS: %{y:.3f}<extra></extra>",
+                ))
+
             fig_bar.update_layout(
+                title=f"Top 20 junctions — {n} targeted (amber) | {officers} officer(s)",
+                barmode="overlay",
                 paper_bgcolor=SURFACE,
                 plot_bgcolor=SURFACE,
                 font_family="Inter Tight",
-                xaxis_tickangle=-45,
-                xaxis_title="",
-                yaxis_title="PIS Score",
+                xaxis=dict(
+                    tickangle=-40,
+                    title="",
+                    gridcolor="#E8E8E6",
+                    categoryorder="total descending",
+                ),
+                yaxis=dict(title="PIS Score", gridcolor="#E8E8E6"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=0, r=0, t=60, b=100),
+                height=400,
             )
             st.plotly_chart(fig_bar, use_container_width=True)
+
+            # Amber button → navigate to Patrol Planner
+            st.markdown(
+                f'<style>.patrol-btn > button {{background-color:{AMBER} !important;'
+                f'color:{CHARCOAL} !important;font-weight:700 !important;'
+                f'border-radius:8px !important;padding:10px 28px !important;'
+                f'font-size:15px !important;border:none !important;'
+                f'box-shadow:0 4px 12px rgba(247,181,88,0.35) !important;'
+                f'transition:transform 0.15s ease !important;}}'
+                f'.patrol-btn > button:hover {{transform:translateY(-2px) !important;}}</style>',
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="patrol-btn">', unsafe_allow_html=True)
+            if st.button("→ Generate Patrol Plan", key="goto_patrol"):
+                st.session_state.page = "Patrol Planner"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # ===========================================================================
 # PAGE: Junction Deep-Dive

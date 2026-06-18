@@ -1,0 +1,18 @@
+# Core App & Data Science Libraries
+streamlit
+pandas
+numpy
+plotly
+folium
+streamlit-folium
+
+# Geospatial Libraries
+h3
+osmnx
+pyproj
+
+# Network & Graph Analysis
+networkx
+python-louvain
+scikit-learn
+tqdm

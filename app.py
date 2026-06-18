@@ -185,6 +185,26 @@ def inject_custom_css():
 inject_custom_css()
 
 # ---------------------------------------------------------------------------
+# Global CSS overrides (font, sidebar colour, metric style, buttons, table)
+# ---------------------------------------------------------------------------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap');
+html, body, [class*="css"], .stApp { font-family: 'Inter Tight', sans-serif !important; }
+.stApp { background-color: #F2F2F0; }
+section[data-testid="stSidebar"] { background-color: #363236 !important; }
+section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] label { color: #FFFFFF !important; }
+[data-testid="stMetricValue"] { color: #F7B558 !important; font-weight: 600 !important; font-size: 2rem !important; }
+.stButton>button { background-color: #F7B558 !important; color: #363236 !important;
+    font-weight: 600 !important; border: none !important; border-radius: 8px !important; }
+div[data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; }
+.stSelectbox label, .stSlider label { color: #363236 !important; font-weight: 500 !important; }
+/* Fix for Streamlit Expander Icons overlapping */
+.stExpander div[role="button"] p { margin-left: 10px; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -456,9 +476,10 @@ if current_page == "Operations Map":
 # PAGE: Enforcement Funnel
 # ===========================================================================
 elif current_page == "Enforcement Funnel":
-    st.title("Enforcement Funnel")
-    st.html('<div class="page-subtitle">Visualizing conversion from detection algorithms to enforcement actions — and where it collapses.</div>')
+    st.title("The enforcement pipeline — where it breaks")
+    st.html('<div class="page-subtitle">Visualizing conversion from detection to enforcement actions — and exactly where it collapses.</div>')
 
+    # KPI callout cards
     col1, col2, col3 = st.columns(3)
     with col1:
         with st.container(border=True):
@@ -475,43 +496,62 @@ elif current_page == "Enforcement Funnel":
 
     st.html("<br>")
 
-    # Callout boxes
     ca, cb, cc = st.columns(3)
     with ca:
         st.html(
             f'<div style="background:#fde8e8;border-left:4px solid {DANGER};'
-            f'padding:12px;border-radius:8px;">'
-            '<b>0 enforcement actions recorded</b><br>across 298,449 violations</div>'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:12px;font-weight:700;color:{DANGER};">CRITICAL</span><br>'
+            '<b>0 enforcement actions recorded</b><br>'
+            '<span style="color:#555;font-size:13px;">across 298,449 violations</span></div>'
         )
     with cb:
         st.html(
             f'<div style="background:#fef5e7;border-left:4px solid {AMBER};'
-            f'padding:12px;border-radius:8px;">'
-            '<b>60.1% of captures happen at 5am</b><br>roads are empty</div>'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:12px;font-weight:700;color:#B45309;">TIMING GAP</span><br>'
+            '<b>60.1% of captures happen at 5am</b><br>'
+            '<span style="color:#555;font-size:13px;">roads are empty — no congestion impact</span></div>'
         )
     with cc:
         st.html(
             f'<div style="background:#fef5e7;border-left:4px solid {AMBER};'
-            f'padding:12px;border-radius:8px;">'
-            '<b>Kodigehalli sends only 54.7%</b><br>of violations to SCITA</div>'
+            f'padding:14px 16px;border-radius:8px;">'
+            f'<span style="font-size:12px;font-weight:700;color:#B45309;">STATION FAILURE</span><br>'
+            '<b>Kodigehalli sends only 54.7%</b><br>'
+            '<span style="color:#555;font-size:13px;">of violations to SCITA</span></div>'
         )
 
     st.html("<br>")
 
-    # Funnel chart
+    # ── Section A: Funnel chart ──────────────────────────────────────────────
+    st.subheader("Section A — Pipeline stages")
     fig_funnel = go.Figure(go.Funnel(
         y=["Captured", "Validated (Approved)", "Sent to SCITA", "Action Taken"],
-        x=[298449, 115400, 255893, 1],
+        x=[298449, 115400, 255893, 1],   # 1 → visible sliver for Action Taken
         textinfo="value+percent initial",
+        textposition="inside",
         marker=dict(color=[CHARCOAL, AMBER, AMBER, DANGER]),
+        connector=dict(line=dict(color="rgba(0,0,0,0.08)", width=1)),
     ))
+    fig_funnel.add_annotation(
+        x=1, y="Action Taken",
+        text="<b>0 actions</b>",
+        showarrow=True, arrowhead=2, arrowcolor=DANGER,
+        font=dict(color=DANGER, size=13, family="Inter Tight"),
+        ax=80, ay=0,
+        bgcolor="#fde8e8", bordercolor=DANGER, borderwidth=1, borderpad=4,
+    )
     fig_funnel.update_layout(
-        title="The 4-stage enforcement pipeline",
+        title=dict(text="The enforcement pipeline — where it breaks",
+                   font=dict(size=16, family="Inter Tight")),
         paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, font_family="Inter Tight",
+        height=380, margin=dict(l=0, r=120, t=60, b=20),
     )
     st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # 24-hour bar chart
+    # ── Section B: 24-hour violation pattern ────────────────────────────────
+    st.subheader("Section B — 24-hour violation pattern")
     if violations_df is not None:
         hour_df = (
             violations_df["hour"].dropna().astype(int)
@@ -522,40 +562,84 @@ elif current_page == "Enforcement Funnel":
             DANGER if h <= 6 else (SAGE if 9 <= h <= 18 else "#CCCCCC")
             for h in hour_df["hour"]
         ]
-        fig_hour = px.bar(hour_df, x="hour", y="count", title="Violations by hour of day")
-        fig_hour.update_traces(marker_color=colours_24h)
-        fig_hour.add_vrect(x0=-0.5, x1=6.5, fillcolor=DANGER, opacity=0.08,
-                           annotation_text="60% captured here (0-6am)",
-                           annotation_position="top left")
-        fig_hour.add_vrect(x0=8.5, x1=18.5, fillcolor=SAGE, opacity=0.08,
-                           annotation_text="Peak congestion (9am-6pm)",
-                           annotation_position="top right")
-        fig_hour.update_layout(paper_bgcolor=SURFACE, plot_bgcolor=SURFACE,
-                               font_family="Inter Tight",
-                               xaxis_title="Hour of day", yaxis_title="Violations")
+        fig_hour = go.Figure(go.Bar(
+            x=hour_df["hour"], y=hour_df["count"],
+            marker_color=colours_24h,
+            hovertemplate="Hour %{x}:00 — %{y:,} violations<extra></extra>",
+        ))
+        peak = hour_df["count"].max()
+        fig_hour.add_vrect(x0=-0.5, x1=6.5, fillcolor=DANGER, opacity=0.10,
+                           layer="below", line_width=0)
+        fig_hour.add_annotation(
+            x=3, y=peak * 0.97,
+            text="<b>60% of captures</b><br>roads are empty",
+            showarrow=False, font=dict(color=DANGER, size=11, family="Inter Tight"),
+            align="center", bgcolor="rgba(255,255,255,0.88)",
+            bordercolor=DANGER, borderwidth=1, borderpad=4,
+        )
+        fig_hour.add_vrect(x0=8.5, x1=18.5, fillcolor=SAGE, opacity=0.10,
+                           layer="below", line_width=0)
+        fig_hour.add_annotation(
+            x=13.5, y=peak * 0.97,
+            text="<b>Peak congestion</b><br>only 2.6% captured",
+            showarrow=False, font=dict(color="#166534", size=11, family="Inter Tight"),
+            align="center", bgcolor="rgba(255,255,255,0.88)",
+            bordercolor=SAGE, borderwidth=1, borderpad=4,
+        )
+        fig_hour.update_layout(
+            title="Violations captured by hour of day",
+            paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, font_family="Inter Tight",
+            xaxis=dict(title="Hour of day", dtick=1, gridcolor="#E8E8E6"),
+            yaxis=dict(title="Violation count", gridcolor="#E8E8E6"),
+            bargap=0.15, height=380, margin=dict(l=0, r=0, t=50, b=40),
+        )
         st.plotly_chart(fig_hour, use_container_width=True)
+    else:
+        st.info("violations_clean.csv not loaded — run 01_clean_and_resolve.py first.")
 
-    # Station funnel breakdown
+    # ── Section C: Police-station SCITA send-rate ───────────────────────────
+    st.subheader("Section C — SCITA send-rate by police station")
     if station_funnel is not None:
-        with st.container(border=True):
-            st.html('<div class="card-header"><span>SCITA Send Rate by Police Station</span>'
-                    '<span class="badge badge-amber">Station Level</span></div>')
-            flagged = station_funnel[station_funnel["low_scita_flag"]]
-            list_html = '<ul class="panel-list">'
-            for _, r in station_funnel.sort_values("scita_send_rate").head(10).iterrows():
-                badge = "badge-danger" if r["low_scita_flag"] else "badge-sage"
-                label = "Below 75%" if r["low_scita_flag"] else "OK"
-                list_html += (
-                    f'<li class="panel-list-item">'
-                    f'<div><div class="panel-list-title">{r["police_station"]}</div>'
-                    f'<div class="panel-list-meta">{r["total_records"]:,} total records</div></div>'
-                    f'<div style="text-align:right;">'
-                    f'<div class="badge {badge}" style="margin-bottom:4px;">{label}</div>'
-                    f'<div class="panel-list-meta">{r["scita_send_rate"]*100:.1f}% sent</div>'
-                    f'</div></li>'
-                )
-            list_html += "</ul>"
-            st.html(list_html)
+        sf = station_funnel.sort_values("scita_send_rate", ascending=True).copy()
+        sf["colour"] = sf["scita_send_rate"].apply(
+            lambda r: DANGER if r < 0.75 else (AMBER if r < 0.85 else SAGE)
+        )
+        fig_station = go.Figure(go.Bar(
+            x=sf["scita_send_rate"], y=sf["police_station"],
+            orientation="h", marker_color=sf["colour"].tolist(),
+            text=[f"{r*100:.1f}%" for r in sf["scita_send_rate"]],
+            textposition="outside",
+            hovertemplate="%{y}: %{x:.1%}<extra></extra>",
+        ))
+        fig_station.add_vline(
+            x=0.75, line_width=2, line_dash="dash", line_color=CHARCOAL,
+            annotation_text="75% threshold", annotation_position="top right",
+            annotation_font=dict(color=CHARCOAL, size=11, family="Inter Tight"),
+        )
+        kodige = sf[sf["police_station"].str.contains("Kodigehalli", case=False, na=False)]
+        if not kodige.empty:
+            kr = kodige.iloc[0]
+            fig_station.add_annotation(
+                x=kr["scita_send_rate"] + 0.01, y=kr["police_station"],
+                text="<b>Kodigehalli ⚠</b>",
+                showarrow=True, arrowhead=2, arrowcolor=DANGER,
+                font=dict(color=DANGER, size=11, family="Inter Tight"),
+                ax=80, ay=0,
+                bgcolor="#fde8e8", bordercolor=DANGER, borderwidth=1, borderpad=3,
+            )
+        fig_station.update_layout(
+            title="SCITA send-rate per police station (sorted ascending)",
+            paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, font_family="Inter Tight",
+            xaxis=dict(title="Send rate", tickformat=".0%",
+                       range=[0, 1.15], gridcolor="#E8E8E6"),
+            yaxis=dict(title="", automargin=True),
+            height=max(350, len(sf) * 26),
+            margin=dict(l=0, r=60, t=50, b=40),
+        )
+        st.plotly_chart(fig_station, use_container_width=True)
+    else:
+        st.info("station_funnel.csv not loaded — run 01_clean_and_resolve.py first.")
+
 
 # ===========================================================================
 # PAGE: Dark Fleet
@@ -738,139 +822,360 @@ elif current_page == "What-If Simulator":
     if pis_scores is None:
         st.warning("PIS scores not loaded.")
     else:
-        with st.container(border=True):
-            st.html('<div class="card-header"><span>Simulation Controls</span>'
-                    '<span class="badge badge-charcoal">Scenarios</span></div>')
-            col_ctrl1, col_ctrl2 = st.columns(2)
-            with col_ctrl1:
-                enforcement_rate = st.slider("Enforcement action rate (%)", 0, 100, 0, format="%d%%")
-                scope = st.selectbox("Target junctions", ["Top 5", "Top 10", "Top 20", "All"])
-            with col_ctrl2:
-                st.html(
-                    f'<div style="padding:12px;background:#fef5e7;border-radius:8px;'
-                    f'border-left:4px solid {AMBER};margin-top:8px;">'
-                    f'<b>Current state</b><br>'
-                    f'0% enforcement = Rs.{pis_scores["loss_INR_per_day"].sum():,.0f} lost daily'
-                    f'</div>'
+        left, right = st.columns([1, 2])
+
+        # ── Left col: controls ───────────────────────────────────────────────
+        with left:
+            st.html(
+                f'<div style="background:{CHARCOAL};border-radius:12px;'
+                f'padding:20px 18px;margin-bottom:12px;">'
+                f'<p style="color:#A0A0A0;font-size:12px;font-weight:600;'
+                f'text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">'
+                f'Simulation Controls</p>'
+            )
+            enforcement_rate = st.slider(
+                "Enforcement action rate (%)", 0, 100, 0, format="%d%%", key="wif_enf"
+            )
+            scope = st.selectbox(
+                "Target junctions", ["Top 5", "Top 10", "Top 20", "All"], key="wif_scope"
+            )
+            officers = st.slider("Officers deployed", 1, 10, 3, key="wif_officers")
+            st.html("</div>")
+            st.html(
+                f'<div style="background:#1E1B1E;border-radius:8px;padding:12px 14px;'
+                f'border-left:3px solid {DANGER};">'
+                f'<span style="color:#A0A0A0;font-size:12px;">Current state (0% enforcement)</span><br>'
+                f'<span style="color:{DANGER};font-weight:700;font-size:15px;">'
+                f'Rs.{pis_scores["loss_INR_per_day"].sum():,.0f} lost / day</span></div>'
+            )
+
+        # ── Right col: results ───────────────────────────────────────────────
+        with right:
+            n_map    = {"Top 5": 5, "Top 10": 10, "Top 20": 20, "All": len(pis_scores)}
+            n        = n_map[scope]
+            selected = pis_scores.nsmallest(n, "rank")
+            total_vh = max(pis_scores["vehicle_hours_lost_per_day"].sum(), 1)
+
+            vh_saved             = (enforcement_rate / 100) * selected["vehicle_hours_lost_per_day"].sum()
+            inr_saved_day        = vh_saved * 150
+            inr_saved_year       = inr_saved_day * 365
+            violations_prevented = (enforcement_rate / 100) * selected["violation_volume"].sum() * 0.3
+            congestion_reduction = vh_saved / total_vh * 100
+
+            # 4 dark metric cards (charcoal bg, amber value)
+            def _dark_card(icon, label, value):
+                return (
+                    f'<div style="background:{CHARCOAL};border-radius:10px;'
+                    f'padding:16px 14px;text-align:center;">'
+                    f'<div style="color:#A0A0A0;font-size:11px;font-weight:600;'
+                    f'text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">{icon} {label}</div>'
+                    f'<div style="color:{AMBER};font-size:22px;font-weight:700;'
+                    f'letter-spacing:-0.5px;">{value}</div></div>'
                 )
 
-        n_map = {"Top 5": 5, "Top 10": 10, "Top 20": 20, "All": len(pis_scores)}
-        n        = n_map[scope]
-        selected = pis_scores.nsmallest(n, "rank")
-        vh_saved       = (enforcement_rate / 100) * selected["vehicle_hours_lost_per_day"].sum()
-        inr_day        = vh_saved * 150
-        inr_year       = inr_day * 365
-        total_vh       = max(pis_scores["vehicle_hours_lost_per_day"].sum(), 1)
-        congestion_pct = vh_saved / total_vh * 100
+            mc1, mc2, mc3, mc4 = st.columns(4)
+            mc1.html(_dark_card("⏱", "Vehicle-hrs saved / day", f"{vh_saved:,.1f} hrs"))
+            mc2.html(_dark_card("💰", "Rs. saved per day", f"Rs.{inr_saved_day:,.0f}"))
+            mc3.html(_dark_card("📈", "Rs. saved per year", f"Rs.{inr_saved_year:,.0f}"))
+            mc4.html(_dark_card("🚦", "Congestion reduction", f"{congestion_reduction:.1f}%"))
 
-        st.subheader("Model Projections")
-        rc1, rc2, rc3, rc4 = st.columns(4)
-        with rc1:
-            with st.container(border=True):
-                st.metric("Hrs Saved / Day", f"{vh_saved:,.1f}")
-                st.html('<span class="badge badge-sage">Time Recovered</span>')
-        with rc2:
-            with st.container(border=True):
-                st.metric("Rs. Saved / Day", f"Rs.{inr_day:,.0f}")
-                st.html('<span class="badge badge-sage">Daily Saving</span>')
-        with rc3:
-            with st.container(border=True):
-                st.metric("Rs. Saved / Year", f"Rs.{inr_year:,.0f}")
-                st.html('<span class="badge badge-sage">Annual Saving</span>')
-        with rc4:
-            with st.container(border=True):
-                st.metric("Congestion Drop", f"{congestion_pct:.1f}%")
-                st.html('<span class="badge badge-amber">Projected</span>')
+            st.html("<br>")
 
-        chart_df = pis_scores.copy()
-        chart_df["selected"] = chart_df["rank"] <= n
-        chart_df["colour"]   = chart_df["selected"].map({True: AMBER, False: "#DDDDDD"})
-        top20_chart = chart_df.head(20)
-        fig_bar = px.bar(top20_chart, x="junction_name", y="PIS",
-                         title=f"Top 20 junctions — {n} targeted (amber)")
-        fig_bar.update_traces(marker_color=top20_chart["colour"].tolist())
-        fig_bar.update_layout(paper_bgcolor=SURFACE, plot_bgcolor=SURFACE,
-                              font_family="Inter Tight", xaxis_tickangle=-45,
-                              xaxis_title="", yaxis_title="PIS Score")
-        st.plotly_chart(fig_bar, use_container_width=True)
+            # Split-trace bar: amber selected, grey unselected
+            chart_df = pis_scores.copy()
+            chart_df["selected"] = chart_df["rank"] <= n
+            top20_chart = chart_df.head(20)
+            grey_df  = top20_chart[~top20_chart["selected"]]
+            amber_df = top20_chart[ top20_chart["selected"]]
+
+            fig_bar = go.Figure()
+            if not grey_df.empty:
+                fig_bar.add_trace(go.Bar(
+                    x=grey_df["junction_name"], y=grey_df["PIS"],
+                    marker_color="#DDDDDD", name="Not targeted",
+                    hovertemplate="%{x}<br>PIS: %{y:.3f}<extra></extra>",
+                ))
+            if not amber_df.empty:
+                fig_bar.add_trace(go.Bar(
+                    x=amber_df["junction_name"], y=amber_df["PIS"],
+                    marker_color=AMBER, name=f"Targeted (top {n})",
+                    hovertemplate="%{x}<br>PIS: %{y:.3f}<extra></extra>",
+                ))
+            fig_bar.update_layout(
+                title=f"Top 20 junctions — {n} targeted (amber) | {officers} officer(s)",
+                barmode="overlay",
+                paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, font_family="Inter Tight",
+                xaxis=dict(tickangle=-40, title="", gridcolor="#E8E8E6",
+                           categoryorder="total descending"),
+                yaxis=dict(title="PIS Score", gridcolor="#E8E8E6"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=0, r=0, t=60, b=100), height=400,
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+            # "Generate Patrol Plan" button — passes simulation params to Patrol Planner
+            if st.button("\u2192 Generate Patrol Plan", key="goto_patrol_wif"):
+                # Pass current What-If values so Patrol Planner pre-fills intelligently
+                st.session_state["wif_to_patrol_officers"] = officers
+                st.session_state["wif_to_patrol_topn"]     = n
+                st.session_state["patrol_generated"]       = True
+                # Navigate — must use plain space, not '+', for query_params lookup
+                st.query_params["page"] = "Patrol Planner"
+                st.rerun()
 
 # ===========================================================================
 # PAGE: Patrol Planner
 # ===========================================================================
 elif current_page == "Patrol Planner":
-    st.title("Patrol Planner")
-    st.html('<div class="page-subtitle">AI-assisted dispatch routes and scheduling for ward officers based on historical blockages.</div>')
+    from math import radians, sin, cos, sqrt, atan2
+    from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        with st.container(border=True):
-            st.metric("Active Patrol Sectors", "12 Sectors", delta="Full Coverage")
-            st.html('<span class="badge badge-sage">Broad Reach</span>')
-    with col2:
-        with st.container(border=True):
-            st.metric("Avg Dispatch Response", "6.4 mins", delta="-1.2 mins vs peak avg")
-            st.html('<span class="badge badge-sage">Fast Response</span>')
-    with col3:
-        with st.container(border=True):
-            st.metric("Coverage Efficiency", "92.1%", delta="+3.4% this week")
-            st.html('<span class="badge badge-sage">Highly Efficient</span>')
+    st.title("Patrol Planner")
+    st.html('<div class="page-subtitle">OR-Tools VRP route optimiser — assign officers to the highest-impact junctions within their shift window.</div>')
 
     if pis_scores is None:
         st.warning("PIS scores not loaded.")
     else:
-        with st.container(border=True):
-            st.html('<div class="card-header"><span>Priority Junctions for Patrol</span>'
-                    '<span class="badge badge-danger">Top 20 by PIS</span></div>')
-            top20 = pis_scores.head(20)[["rank", "junction_name", "action_type",
-                                         "violation_volume", "loss_INR_per_day",
-                                         "lat_mean", "lon_mean"]]
-            st.dataframe(top20.rename(columns={
-                "rank": "Rank", "junction_name": "Junction",
-                "action_type": "Action", "violation_volume": "Violations",
-                "loss_INR_per_day": "Rs. Loss/Day",
-            }), use_container_width=True, hide_index=True)
+        # Read defaults passed from What-If Simulator (if any)
+        _from_wif          = "wif_to_patrol_officers" in st.session_state
+        _default_officers  = int(st.session_state.pop("wif_to_patrol_officers", 3))
+        _wif_topn          = st.session_state.pop("wif_to_patrol_topn", None)
+        # Map What-If n-value to the nearest valid slider tick (10-30)
+        _default_topn      = int(max(10, min(30, _wif_topn))) if _wif_topn is not None else 20
 
-        m2 = folium.Map(location=[12.9716, 77.5946], zoom_start=12, tiles=None)
-        folium.TileLayer(
-            tiles="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            name="Street Map", max_zoom=19, subdomains="abc",
-        ).add_to(m2)
-        for _, row in top20.iterrows():
-            if pd.notna(row["lat_mean"]) and pd.notna(row["lon_mean"]):
-                folium.Marker(
-                    location=[row["lat_mean"], row["lon_mean"]],
-                    popup=f"#{int(row['rank'])} {row['junction_name']}",
-                    icon=folium.DivIcon(
-                        html=(
-                            f'<div style="background:{AMBER};color:{CHARCOAL};'
-                            f'border-radius:50%;width:24px;height:24px;'
-                            f'display:flex;align-items:center;justify-content:center;'
-                            f'font-weight:600;font-size:11px;border:2px solid white;">'
-                            f'{int(row["rank"])}</div>'
-                        ),
-                        icon_size=(24, 24), icon_anchor=(12, 12),
-                    ),
-                ).add_to(m2)
-        st_folium(m2, use_container_width=True, height=400, returned_objects=[])
+        col1, col2 = st.columns([1, 2])
 
-        with st.container(border=True):
-            st.html('<div class="card-header"><span>Patrol Unit Dispatch Log</span>'
-                    '<span class="badge badge-sage">All Active</span></div>')
-            patrols = [
-                ("Unit Echo-3 (Officer Suresh K.)",  "Route: Koramangala 80 Feet Road (Sector 4)", "14 Citations", "badge-sage"),
-                ("Unit Delta-2 (Officer Priya R.)",  "Route: MG Road & Residency Road (Sector 1)", "9 Citations",  "badge-sage"),
-                ("Unit Alpha-1 (Officer Anand G.)",  "Route: Indiranagar Double Road (Sector 2)",  "22 Citations", "badge-sage"),
-                ("Unit Bravo-4 (Officer Amit S.)",   "Route: Outer Ring Road, Bellandur (Sector 8)","Responding to Truck Obstruction", "badge-amber"),
-            ]
-            list_html = '<ul class="panel-list">'
-            for unit, route, status, badge in patrols:
-                list_html += (
-                    f'<li class="panel-list-item">'
-                    f'<div><div class="panel-list-title">{unit}</div>'
-                    f'<div class="panel-list-meta">{route}</div></div>'
-                    f'<div style="text-align:right;">'
-                    f'<span class="badge {badge}">{status}</span></div></li>'
+        with col1:
+            if _from_wif:
+                st.html(
+                    f'<div style="background:#fef5e7;border-left:4px solid {AMBER};'
+                    f'padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;">'
+                    f'<b>Pre-filled from What-If Simulator</b><br>'
+                    f'{_default_officers} officer(s) · top {_default_topn} junctions</div>'
                 )
-            list_html += "</ul>"
-            st.html(list_html)
+            n_officers  = st.slider("Officers", 1, 5, _default_officers, key="pp_officers")
+            shift_hours = st.slider("Shift duration (hrs)", 2, 8, 4, key="pp_shift")
+            top_n       = st.slider("Junctions to cover", 10, 30, _default_topn, key="pp_topn")
+            generate    = st.button("Generate Patrol Plan", type="primary", key="pp_generate")
+            if generate:
+                st.session_state["patrol_generated"] = True
+
+        with col2:
+            # Auto-execute when arriving from What-If
+            _auto_run = st.session_state.get("patrol_generated", False)
+            if generate or _auto_run:
+
+                # ── 1. Select junctions ─────────────────────────────────────
+                jdf = (
+                    pis_scores.dropna(subset=["lat_mean", "lon_mean"])
+                    .nsmallest(top_n, "rank")
+                    .reset_index(drop=True)
+                )
+
+                # Depot: city centre (index 0 in location list)
+                depot_lat, depot_lon = 12.9716, 77.5946
+                lats = [depot_lat] + jdf["lat_mean"].tolist()
+                lons = [depot_lon] + jdf["lon_mean"].tolist()
+                n_locs = len(lats)   # depot + junctions
+
+                # ── 2. Haversine distance matrix (seconds @ 20 km/h) ────────
+                def _haversine_s(lat1, lon1, lat2, lon2):
+                    R = 6371.0
+                    dlat = radians(lat2 - lat1)
+                    dlon = radians(lon2 - lon1)
+                    a = sin(dlat/2)**2 + cos(radians(lat1))*cos(radians(lat2))*sin(dlon/2)**2
+                    km = 2 * R * atan2(sqrt(a), sqrt(1-a))
+                    return int(km / 20 * 3600)   # seconds at 20 km/h
+
+                dist_matrix = [
+                    [_haversine_s(lats[i], lons[i], lats[j], lons[j]) for j in range(n_locs)]
+                    for i in range(n_locs)
+                ]
+
+                # ── 3. OR-Tools VRP ─────────────────────────────────────────
+                import math as _math
+                manager = pywrapcp.RoutingIndexManager(n_locs, n_officers, 0)
+                routing = pywrapcp.RoutingModel(manager)
+
+                def _time_cb(from_idx, to_idx):
+                    return dist_matrix[manager.IndexToNode(from_idx)][manager.IndexToNode(to_idx)]
+
+                cb_idx = routing.RegisterTransitCallback(_time_cb)
+                routing.SetArcCostEvaluatorOfAllVehicles(cb_idx)
+
+                # Time window: each vehicle must finish within shift
+                max_seconds = shift_hours * 3600
+                routing.AddDimension(
+                    cb_idx,
+                    0,            # no slack
+                    max_seconds,
+                    True,         # start cumul at zero
+                    "Time",
+                )
+
+                # Count dimension: balance stops across officers
+                # Each officer gets at most ceil(n_junctions / n_officers) stops
+                max_stops_per_officer = _math.ceil(len(jdf) / n_officers)
+
+                def _count_cb(from_idx, to_idx):
+                    # +1 for every non-depot node we depart from
+                    return 0 if manager.IndexToNode(from_idx) == 0 else 1
+
+                count_cb_idx = routing.RegisterTransitCallback(_count_cb)
+                routing.AddDimension(
+                    count_cb_idx,
+                    0,
+                    max_stops_per_officer,
+                    True,
+                    "Count",
+                )
+
+                # Force every junction to be visited (high penalty = must visit)
+                # Without this OR-Tools drops stops onto one vehicle cheaply
+                penalty = max_seconds * 2
+                for node in range(1, n_locs):   # skip depot (node 0)
+                    routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
+
+                params = pywrapcp.DefaultRoutingSearchParameters()
+                params.first_solution_strategy = (
+                    routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+                )
+                params.local_search_metaheuristic = (
+                    routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+                )
+                params.time_limit.seconds = 30
+
+                solution = routing.SolveWithParameters(params)
+
+                # ── 4. Extract routes ────────────────────────────────────────
+                route_colours = [AMBER, SAGE, "#7BBFEA", "#C97ED4", "#F09F7C"]
+                routes = []   # list per officer of jdf-row indices
+
+                if solution:
+                    for v in range(n_officers):
+                        idx = routing.Start(v)
+                        stops = []
+                        while not routing.IsEnd(idx):
+                            node = manager.IndexToNode(idx)
+                            if node != 0:           # skip depot
+                                stops.append(node - 1)
+                            idx = solution.Value(routing.NextVar(idx))
+                        routes.append(stops)
+                else:
+                    # Fallback: round-robin so every officer gets some stops
+                    for v in range(n_officers):
+                        routes.append(list(range(v, len(jdf), n_officers)))
+
+                # ── 5. Folium map ────────────────────────────────────────────
+                m_patrol = folium.Map(location=[depot_lat, depot_lon], zoom_start=12, tiles=None)
+                folium.TileLayer(
+                    tiles="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    name="Street Map", max_zoom=19, subdomains="abc",
+                ).add_to(m_patrol)
+
+                for v_idx, stops in enumerate(routes):
+                    colour = route_colours[v_idx % len(route_colours)]
+                    if not stops:
+                        continue
+                    # PolyLine through stop coordinates
+                    coords = [(jdf.loc[s, "lat_mean"], jdf.loc[s, "lon_mean"]) for s in stops
+                              if pd.notna(jdf.loc[s, "lat_mean"])]
+                    if len(coords) > 1:
+                        folium.PolyLine(coords, color=colour, weight=3, opacity=0.8).add_to(m_patrol)
+                    # Numbered circle markers
+                    for order, s in enumerate(stops, 1):
+                        row_s = jdf.loc[s]
+                        if pd.isna(row_s["lat_mean"]):
+                            continue
+                        folium.CircleMarker(
+                            location=[row_s["lat_mean"], row_s["lon_mean"]],
+                            radius=14, color="white", fill=True,
+                            fill_color=colour, fill_opacity=0.9, weight=2,
+                            popup=folium.Popup(
+                                f"<b>Officer {v_idx+1} • Stop {order}</b><br>"
+                                f"{row_s['junction_name']}<br>"
+                                f"PIS: {row_s['PIS']:.3f}",
+                                max_width=200,
+                            ),
+                            tooltip=f"O{v_idx+1}-S{order}: {row_s['junction_name']}",
+                        ).add_to(m_patrol)
+                        folium.Marker(
+                            location=[row_s["lat_mean"], row_s["lon_mean"]],
+                            icon=folium.DivIcon(
+                                html=(
+                                    f'<div style="color:white;font-weight:700;font-size:10px;'
+                                    f'text-align:center;line-height:28px;">'
+                                    f'{order}</div>'
+                                ),
+                                icon_size=(28, 28), icon_anchor=(14, 14),
+                            ),
+                        ).add_to(m_patrol)
+
+                st_folium(m_patrol, use_container_width=True, height=480, returned_objects=[])
+
+                # ── 6. Summary table ─────────────────────────────────────────
+                total_viol = max(jdf["violation_volume"].sum(), 1)
+                summary_rows = []
+                for v_idx, stops in enumerate(routes):
+                    colour = route_colours[v_idx % len(route_colours)]
+                    names    = "; ".join(jdf.loc[s, "junction_name"] for s in stops) if stops else "—"
+                    pis_sum  = float(jdf.loc[stops, "PIS"].sum()) if stops else 0.0
+                    viol_int = int(jdf.loc[stops, "violation_volume"].sum() * 0.15) if stops else 0
+                    cov_pct  = round(jdf.loc[stops, "violation_volume"].sum() / total_viol * 100, 1) if stops else 0.0
+                    summary_rows.append({
+                        "Officer":   f"Officer {v_idx+1}",
+                        "Colour":    colour,
+                        "Stops":     len(stops),
+                        "Junctions": names,
+                        "PIS Sum":   round(pis_sum, 3),
+                        "Est. Violations Intercepted": viol_int,
+                        "Coverage %": cov_pct,
+                    })
+
+                patrol_df = pd.DataFrame(summary_rows)
+
+                st.html("<br>")
+                st.subheader("Route Summary")
+                # Show all officers; omit Junctions column (too wide) and internal Colour column
+                st.dataframe(
+                    patrol_df.drop(columns=["Junctions", "Colour"]),
+                    use_container_width=True, hide_index=True,
+                )
+
+                # Per-officer junction detail expanders
+                for row in summary_rows:
+                    colour = row["Colour"]
+                    with st.expander(f"🔸 {row['Officer']} — junction list ({row['Stops']} stops)"):
+                        st.write(row["Junctions"])
+
+                # Coverage callout — cap at 100 %
+                overall_cov = min(sum(r["Coverage %"] for r in summary_rows), 100.0)
+
+                st.html(
+                    f'<div style="background:{CHARCOAL};border-radius:10px;'
+                    f'padding:16px 20px;margin-top:12px;">'
+                    f'<span style="color:{AMBER};font-size:18px;font-weight:700;">'
+                    f'{n_officers} officer(s) cover {overall_cov:.0f}% of critical violations '
+                    f'in {shift_hours} hrs</span></div>'
+                )
+
+                # Download
+                st.download_button(
+                    "\u2193 Download patrol_plan.csv",
+                    data=patrol_df.to_csv(index=False),
+                    file_name="patrol_plan.csv",
+                    mime="text/csv",
+                    key="pp_download",
+                )
+            else:
+                st.html(
+                    f'<div style="background:{CHARCOAL};border-radius:12px;'
+                    f'padding:32px 24px;text-align:center;margin-top:40px;">'
+                    f'<div style="font-size:40px;margin-bottom:12px;">\U0001f6a6</div>'
+                    f'<div style="color:{AMBER};font-size:18px;font-weight:700;margin-bottom:8px;">'
+                    f'Set your parameters and click “Generate Patrol Plan”</div>'
+                    f'<div style="color:#A0A0A0;font-size:14px;">'
+                    f'OR-Tools VRP will compute optimal routes within the shift window.</div>'
+                    f'</div>'
+                )
