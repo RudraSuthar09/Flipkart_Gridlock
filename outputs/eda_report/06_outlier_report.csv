@@ -1,0 +1,4 @@
+column,q1,q3,iqr,lower_fence,upper_fence,outliers_IQR,outliers_IQR_pct,outliers_Zscore,outliers_Zscore_pct
+latitude,12.9633,12.9975,0.0341,12.9121,13.0487,35507,11.9,6964,2.33
+longitude,77.5712,77.6215,0.0503,77.4957,77.697,14995,5.02,551,0.18
+center_code,11.0,29.0,18.0,-16.0,56.0,19488,6.79,12762,4.44

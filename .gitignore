@@ -44,3 +44,7 @@ Thumbs.db
 desktop.ini
 
 dataset.csv
+
+# Large generated outputs — excluded from git
+outputs/eda_report/engineered_dataset.csv
+cache/

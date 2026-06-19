@@ -1,0 +1,18 @@
+column,unique,top_value,top_freq,top_pct,missing,missing_pct
+id,298450,FKID000000,1,0.0,0,0.0
+location,10942,"Unnamed Road, Begur Chikkanahalli, Bengaluru, Karnataka. Pin-562149 (India)",4090,1.38,3041,1.02
+vehicle_number,231890,FKN00GL4424,55,0.02,0,0.0
+vehicle_type,22,SCOOTER,94856,31.78,0,0.0
+violation_type,991,"[""WRONG PARKING""]",138764,46.49,0,0.0
+offence_code,991,[112],138764,46.49,0,0.0
+created_datetime,94417,2024-02-28 22:14:46+00,61,0.02,0,0.0
+modified_datetime,298450,2023-11-09 20:38:01.870979+00,1,0.0,0,0.0
+device_id,3070,FKDEV00021,4344,1.46,0,0.0
+created_by_id,2666,FKUSR00021,4099,1.37,5,0.0
+police_station,54,Upparpet,34468,11.55,5,0.0
+junction_name,169,No Junction,147880,49.55,5,0.0
+data_sent_to_scita_timestamp,42161,2024-03-22 10:54:47.389025+00,1,0.0,256289,85.87
+updated_vehicle_number,143133,FKN00GL17863,36,0.02,125254,41.97
+updated_vehicle_type,22,SCOOTER,54867,31.68,125254,41.97
+validation_status,5,approved,115400,66.63,125254,41.97
+validation_timestamp,170115,2024-01-08 00:35:08.511+00,5,0.0,125254,41.97
