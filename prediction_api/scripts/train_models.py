@@ -224,7 +224,10 @@ def main() -> int:
 
     # ── 5. Baseline — save config, no fitting needed ───────────────────
     log.info("Saving baseline config (target=%s)...", args.target)
-    save_baseline_config(path=baseline_path)  # None → uses default (count model)
+    if baseline_path is not None:
+        save_baseline_config(path=baseline_path)
+    else:
+        save_baseline_config()  # uses default BASELINE_JSON from config
     log.info("  Baseline config saved.")
 
     # ── 6. LightGBM training ───────────────────────────────────────
