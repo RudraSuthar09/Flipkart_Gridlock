@@ -48,3 +48,9 @@ dataset.csv
 # Large generated outputs — excluded from git
 outputs/eda_report/engineered_dataset.csv
 cache/
+data/*.csv
+data/*.json
+data/processed/
+eda_output/
+*_out.txt
+*_err.txt

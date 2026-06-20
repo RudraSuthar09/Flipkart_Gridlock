@@ -1,0 +1,34 @@
+{
+  "hour_weights": [
+    0.6,
+    0.36,
+    0.21599999999999997,
+    0.1296
+  ],
+  "day_weights": [
+    0.5,
+    0.25,
+    0.125,
+    0.0625
+  ],
+  "week_weights": [
+    0.5,
+    0.25,
+    0.125
+  ],
+  "weight_sum": 3.1181,
+  "feature_names": [
+    "recent_h1",
+    "recent_h2",
+    "recent_h3",
+    "recent_h4",
+    "same_hour_d1",
+    "same_hour_d2",
+    "same_hour_d3",
+    "same_hour_d4",
+    "same_hour_wd_w1",
+    "same_hour_wd_w2",
+    "same_hour_wd_w3"
+  ],
+  "description": "Recency-weighted sum baseline.  baseline_score = dot(weights, features) / weight_sum.  naive_prediction = same_hour_d1 (feature index 4)."
+}

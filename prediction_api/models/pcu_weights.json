@@ -1,0 +1,13 @@
+{
+  "_comment": "Passenger Car Unit (PCU) equivalency factors per canonical vehicle category.",
+  "_source": "IRC SP-41-1994 (Guidelines for the Design of At-Grade Intersections in Rural and Urban Areas), supplemented by IRC 106-1990 for mixed-traffic conditions. Conservative middle values chosen where ranges differ between references.",
+  "_fallback_pcu": 1.0,
+  "_fallback_note": "Unmapped vehicle types default to car (1.0 PCU) — surfaced as vehicle_mapping_coverage in /health endpoint.",
+  "two_wheeler":   0.5,
+  "auto_rickshaw": 1.2,
+  "car":           1.0,
+  "lcv":           1.5,
+  "bus":           2.5,
+  "heavy_truck":   3.0,
+  "tractor":       4.0
+}
