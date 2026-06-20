@@ -138,10 +138,25 @@ def build_feature_matrix(
     target_timestamps = pd.to_datetime(target_timestamps)
 
     # ── Step 1 & 2: Convert to integer positions ─────────────────
+    # Arithmetic row position: compute hours since panel_start so that
+    # timestamps BEYOND the panel end still get a valid virtual row index.
+    # Lookback offsets (t-1h, t-24h, etc.) can then point back into the
+    # matrix even when the target itself is outside the stored range.
+    # This fixes the bug where e.g. 2024-04-08T18:00 (1 hour past the
+    # panel end at 17:00) would return -1 from the dictionary lookup,
+    # zeroing out all features and making predictions meaningless.
+    panel_start_ns = pivot_data.panel_start.value  # nanoseconds
+    one_hour_ns = int(pd.Timedelta(hours=1).value)
     row_pos = np.array(
-        [pivot_data.ts_to_pos.get(ts, -1) for ts in target_timestamps],
-        dtype=np.int32,
+        [
+            int((ts.value - panel_start_ns) // one_hour_ns)
+            if not pd.isna(ts) else -1
+            for ts in target_timestamps
+        ],
+        dtype=np.int64,
     )
+    n_rows = pivot_data.matrix.shape[0]
+
     col_pos = np.array(
         [pivot_data.loc_to_pos.get(loc, -1) for loc in location_keys],
         dtype=np.int32,
@@ -153,9 +168,10 @@ def build_feature_matrix(
     for feat_idx, offset in enumerate(_OFFSETS_H):
         lookup_rows = row_pos - offset          # can be negative (cold start)
 
-        # Valid: row_pos >= 0 (ts found), col_pos >= 0 (loc found),
-        #        lookup_rows >= 0 (not before panel start)
-        valid = (lookup_rows >= 0) & (row_pos >= 0) & (col_pos >= 0)
+        # Valid: col_pos >= 0 (loc found),
+        #        lookup_rows >= 0 (not before panel start),
+        #        lookup_rows < n_rows (within stored matrix bounds)
+        valid = (lookup_rows >= 0) & (lookup_rows < n_rows) & (col_pos >= 0)
 
         if valid.any():
             features[valid, feat_idx] = pivot_data.matrix[

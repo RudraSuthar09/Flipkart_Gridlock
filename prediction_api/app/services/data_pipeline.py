@@ -322,7 +322,11 @@ def load_panel(path: Path = PARQUET_PATH) -> pd.DataFrame:
             "Run scripts/build_canonical_timeseries.py first."
         )
     panel = pd.read_parquet(path)
-    panel["timestamp"] = pd.to_datetime(panel["timestamp"])
+    ts = pd.to_datetime(panel["timestamp"])
+    # Strip timezone if present so lookups against naive target timestamps work
+    if ts.dt.tz is not None:
+        ts = ts.dt.tz_localize(None)
+    panel["timestamp"] = ts
     log.info("Panel loaded from %s  (%d rows)", path, len(panel))
     return panel
 
