@@ -232,6 +232,7 @@ def generate_training_examples(
     panel_df: pd.DataFrame,
     pivot_data: PivotData,
     min_history_days: int = MIN_HISTORY_DAYS,
+    label_column_name: str = "violation_count",
 ) -> pd.DataFrame:
     """
     Generate one training example per (location_key, target_timestamp)
@@ -246,7 +247,7 @@ def generate_training_examples(
         location_key, target_timestamp,
         [11 feature columns],
         hour, weekday, is_weekend,  (context — for LightGBM)
-        violation_count             (the label)
+        <label_column_name>         (the label)
 
     Vectorised: one build_feature_matrix call over ALL examples at once.
     """
@@ -275,7 +276,10 @@ def generate_training_examples(
     result = pd.DataFrame(feat_mat, columns=FEATURE_NAMES)
     result["location_key"]       = location_keys
     result["target_timestamp"]   = pd.to_datetime(target_timestamps)
-    result["violation_count"]    = labels.astype(np.int32)
+    if label_column_name == "severity_score":
+        result[label_column_name] = labels.astype(np.float32)
+    else:
+        result[label_column_name] = labels.astype(np.int32)
 
     # Append context features for LightGBM
     ts_arr = pd.to_datetime(target_timestamps)
