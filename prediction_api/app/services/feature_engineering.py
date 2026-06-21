@@ -115,6 +115,7 @@ def build_feature_matrix(
     pivot_data: PivotData,
     target_timestamps: List[pd.Timestamp] | pd.DatetimeIndex,
     location_keys: List[str],
+    horizons_h: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Compute the 11-feature matrix for a batch of (target_timestamp,
@@ -162,11 +163,16 @@ def build_feature_matrix(
         dtype=np.int32,
     )
 
+    if horizons_h is None:
+        horizons_h = np.zeros(n, dtype=np.int64)
+
+    effective_row_pos = row_pos - horizons_h
+
     # ── Step 3–5: One numpy lookup per offset ────────────────────
     features = np.zeros((n, len(_OFFSETS_H)), dtype=np.float32)
 
     for feat_idx, offset in enumerate(_OFFSETS_H):
-        lookup_rows = row_pos - offset          # can be negative (cold start)
+        lookup_rows = effective_row_pos - offset          # can be negative (cold start)
 
         # Valid: col_pos >= 0 (loc found),
         #        lookup_rows >= 0 (not before panel start),
@@ -187,9 +193,10 @@ def build_feature_df(
     pivot_data: PivotData,
     target_timestamps: List[pd.Timestamp] | pd.DatetimeIndex,
     location_keys: List[str],
+    horizons_h: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Convenience wrapper: returns a named DataFrame instead of raw ndarray."""
-    mat = build_feature_matrix(pivot_data, target_timestamps, location_keys)
+    mat = build_feature_matrix(pivot_data, target_timestamps, location_keys, horizons_h)
     return pd.DataFrame(mat, columns=FEATURE_NAMES)
 
 
@@ -200,6 +207,7 @@ def build_feature_df(
 def add_context_features(
     feat_df: pd.DataFrame,
     target_timestamps: List[pd.Timestamp] | pd.DatetimeIndex,
+    horizons_h: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """
     Append hour, weekday, is_weekend columns to the feature DataFrame.
@@ -212,6 +220,7 @@ def add_context_features(
     out["hour"]       = ts.hour.astype(np.int8)
     out["weekday"]    = ts.weekday.astype(np.int8)      # property, not callable
     out["is_weekend"] = (out["weekday"] >= 5).astype(np.int8)
+    out["horizon"]    = horizons_h if horizons_h is not None else 0
     return out
 
 
@@ -255,8 +264,12 @@ def generate_training_examples(
     location_keys     = eligible["location_key"].tolist()
     labels            = eligible["violation_count"].values
 
+    # Generate random horizons between 0 and 168 (1 week)
+    np.random.seed(42)
+    horizons_h = np.random.randint(0, 169, size=len(target_timestamps)).astype(np.int64)
+
     # Build 11-feature matrix in one vectorised call
-    feat_mat = build_feature_matrix(pivot_data, target_timestamps, location_keys)
+    feat_mat = build_feature_matrix(pivot_data, target_timestamps, location_keys, horizons_h)
 
     # Assemble output DataFrame
     result = pd.DataFrame(feat_mat, columns=FEATURE_NAMES)
@@ -269,6 +282,7 @@ def generate_training_examples(
     result["hour"]       = ts_arr.hour.astype(np.int8)
     result["weekday"]    = ts_arr.weekday.astype(np.int8)   # property, not callable
     result["is_weekend"] = (result["weekday"] >= 5).astype(np.int8)
+    result["horizon"]    = horizons_h.astype(np.int32)
 
     log.info(
         "Training examples generated: %d rows  "

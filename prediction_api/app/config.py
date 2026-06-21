@@ -108,5 +108,5 @@ FEATURE_NAMES = [
     "same_hour_d1", "same_hour_d2", "same_hour_d3", "same_hour_d4",
     "same_hour_wd_w1", "same_hour_wd_w2", "same_hour_wd_w3",
 ]
-CONTEXT_FEATURES = ["hour", "weekday", "is_weekend"]   # LightGBM extras (§5)
+CONTEXT_FEATURES = ["hour", "weekday", "is_weekend", "horizon"]   # LightGBM extras (§5)
 ALL_LGBM_FEATURES = FEATURE_NAMES + CONTEXT_FEATURES

@@ -72,7 +72,7 @@ async def get_locations(request: Request) -> List[LocationRecord]:
     location master never changes without a full server restart).
     """
     master: pd.DataFrame = request.app.state.location_master
-    records = master.to_dict("records")
+    records = master.replace({np.nan: None}).to_dict("records")
     return [LocationRecord(**r) for r in records]
 
 
@@ -142,20 +142,26 @@ async def predict(
     n        = len(all_locs)
     all_ts   = [target_ts] * n
 
-    feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs)
+    # Calculate horizon in hours
+    panel_end = pivot_data.panel_end
+    diff_h    = int((target_ts - panel_end).total_seconds() // 3600)
+    horizon_h = max(0, diff_h)
+    horizons_h = np.full(n, horizon_h, dtype=np.int64)
+
+    feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs, horizons_h)
     # feat_mat: shape (n, 11), dtype float32
 
     # ── 3–4. Naive + Baseline (pure numpy) ───────────────────────
     naive_preds    = naive_predict(feat_mat)
     baseline_preds = baseline_predict(feat_mat)
 
-    # ── 5. LightGBM (14 features: 11 lookback + hour/weekday/is_weekend)
+    # ── 5. LightGBM (15 features: 11 lookback + hour/weekday/is_weekend/horizon)
     wd  = target_ts.weekday()      # Timestamp.weekday() IS callable (not property)
     iwe = int(wd >= 5)
     ctx_cols = np.array(
-        [[target_ts.hour, wd, iwe]] * n, dtype=np.float32
-    )                              # shape (n, 3)
-    X_lgbm = np.hstack([feat_mat, ctx_cols])   # shape (n, 14)
+        [[target_ts.hour, wd, iwe, horizon_h]] * n, dtype=np.float32
+    )                              # shape (n, 4)
+    X_lgbm = np.hstack([feat_mat, ctx_cols])   # shape (n, 15)
 
     lgbm_preds = lgbm.predict(X_lgbm)
 
@@ -188,5 +194,6 @@ async def predict(
     )
 
     # ── 8. Serialise ─────────────────────────────────────────────
+    merged = merged.replace({np.nan: None})
     records = merged.to_dict("records")
     return [PredictionRecord(**r) for r in records]

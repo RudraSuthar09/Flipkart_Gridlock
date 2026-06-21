@@ -77,7 +77,7 @@ def test_pcu_config_all_vehicle_types_mapped():
         )
         assert pcu_val > 0, f"PCU value for '{cat}' must be positive"
 
-    print(f"✓ test_pcu_config_all_vehicle_types_mapped  "
+    print(f"PASS test_pcu_config_all_vehicle_types_mapped  "
           f"({len(vehicle_types)} types, {len(categories)} categories)")
 
 
@@ -125,7 +125,7 @@ def test_severity_aggregation_is_sum():
         f"Expected severity sum={expected_sum}, got {actual}. "
         "Severity MUST be summed per bucket, not averaged."
     )
-    print(f"✓ test_severity_aggregation_is_sum  (expected={expected_sum}, got={actual})")
+    print(f"PASS test_severity_aggregation_is_sum  (expected={expected_sum}, got={actual})")
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ def test_densify_panel_value_column_severity():
     nonzero = panel[panel["violation_count"] > 0]
     assert len(nonzero) == 3, f"Expected 3 non-zero rows, got {len(nonzero)}"
 
-    print(f"✓ test_densify_panel_value_column_severity  "
+    print(f"PASS test_densify_panel_value_column_severity  "
           f"({n_locs} locs × {n_hours} hours = {len(panel)} rows)")
 
 
@@ -199,7 +199,7 @@ def test_severity_health_endpoint():
     assert 0.0 <= data["lane_match_coverage"]      <= 1.0
 
     print(
-        f"✓ test_severity_health_endpoint  "
+        f"PASS test_severity_health_endpoint  "
         f"(veh_cov={data['vehicle_mapping_coverage']:.2f}  "
         f"lane_cov={data['lane_match_coverage']:.2f})"
     )
@@ -251,7 +251,7 @@ def test_severity_ranking_regression():
     )
 
     print(
-        f"✓ test_severity_ranking_regression  "
+        f"PASS test_severity_ranking_regression  "
         f"| A: count={count_A}, severity={severity_A:.2f}  "
         f"| B: count={count_B}, severity={severity_B:.2f}  "
         f"| Severity rank: A(#{1}) > B(#{2}) despite count rank B(#{1}) > A(#{2})"
@@ -276,7 +276,7 @@ if __name__ == "__main__":
             t()
             passed += 1
         except Exception as exc:
-            print(f"✗ {t.__name__}: {exc}")
+            print(f"FAIL {t.__name__}: {exc}")
             failed += 1
     print(f"\n{'='*55}")
     print(f"  Severity tests: {passed} passed, {failed} failed")

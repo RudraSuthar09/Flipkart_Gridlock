@@ -96,7 +96,7 @@ async def severity_locations(request: Request) -> List[SeverityLocationRecord]:
     if meta.empty:
         return []
 
-    records = meta.to_dict("records")
+    records = meta.replace({np.nan: None}).to_dict("records")
     result = []
     for r in records:
         result.append(SeverityLocationRecord(
@@ -185,16 +185,22 @@ async def severity_predict(
     n        = len(all_locs)
     all_ts   = [target_ts] * n
 
-    feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs)
+    # Calculate horizon in hours
+    panel_end = pivot_data.panel_end
+    diff_h    = int((target_ts - panel_end).total_seconds() // 3600)
+    horizon_h = max(0, diff_h)
+    horizons_h = np.full(n, horizon_h, dtype=np.int64)
+
+    feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs, horizons_h)
 
     # ── 3–4. Naive + Baseline ─────────────────────────────────────
     naive_preds    = naive_predict(feat_mat)
     baseline_preds = baseline_predict(feat_mat)
 
-    # ── 5. LightGBM (14 features) ────────────────────────────────
+    # ── 5. LightGBM (15 features) ────────────────────────────────
     wd  = target_ts.weekday()
     iwe = int(wd >= 5)
-    ctx_cols = np.array([[target_ts.hour, wd, iwe]] * n, dtype=np.float32)
+    ctx_cols = np.array([[target_ts.hour, wd, iwe, horizon_h]] * n, dtype=np.float32)
     X_lgbm = np.hstack([feat_mat, ctx_cols])
 
     lgbm_preds = lgbm_severity.predict(X_lgbm)
@@ -224,6 +230,7 @@ async def severity_predict(
     )
 
     # ── 8. Serialise ─────────────────────────────────────────────
+    merged = merged.replace({np.nan: None})
     records = []
     for r in merged.to_dict("records"):
         lane = r.get("lane_count")

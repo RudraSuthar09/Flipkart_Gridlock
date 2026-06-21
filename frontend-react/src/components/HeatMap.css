@@ -1,0 +1,150 @@
+.heatmap-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.heatmap-leaflet {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Popups ─────────────────────────────────────────── */
+.pred-popup {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  min-width: 260px;
+}
+
+.popup-rank-badge {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.popup-rank-top {
+  background: #facc15;
+  color: #78350f;
+}
+
+.sev-rank-badge {
+  background: #fed7aa;
+  color: #7c2d12;
+}
+
+.popup-loc {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.popup-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.sev-explainer {
+  background: #fef3c7;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #92400e;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.sev-explainer-icon { flex-shrink: 0; }
+
+.sev-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.sev-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sev-detail-wide { grid-column: span 2; }
+
+.sev-detail-label {
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sev-detail-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.popup-scores {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.popup-score {
+  flex: 1;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.popup-score.active-score {
+  background: #fffbeb;
+  border-color: #facc15;
+}
+
+.score-label {
+  display: block;
+  font-size: 10px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.score-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.popup-risk-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.popup-risk-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.popup-risk-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-align: right;
+}
