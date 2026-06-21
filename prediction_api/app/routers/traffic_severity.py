@@ -125,13 +125,17 @@ async def severity_predict(
             "Target timestamp in ISO-8601 format (e.g. '2024-03-26T14:00:00'). "
             "Predictions are hourly — minute/second are ignored."
         ),
-        example="2024-03-26T14:00:00",
+        examples=["2024-03-26T14:00:00"],
     ),
     top_n: Optional[int] = Query(
         None,
         ge=1,
         le=6333,
         description="Return only the top-N highest-severity locations (default: all).",
+    ),
+    active_only: bool = Query(
+        True,
+        description="If true (default), only return locations with actual historical activity in the lookback window. Set to false to return all locations.",
     ),
 ) -> List[SeverityPredictionRecord]:
     """
@@ -193,21 +197,57 @@ async def severity_predict(
 
     feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs, horizons_h)
 
+    # ── Filter: keep only locations with actual historical data ───
+    # Same logic as the count-based endpoint: only locations where at
+    # least one of the 11 lookback features is non-zero have real data
+    # backing the severity prediction. All-zero rows are cold-start and
+    # produce meaningless Tweedie prior scores.
+    has_activity = feat_mat.any(axis=1)  # shape (n,), bool
+
+    if active_only:
+        active_mask = has_activity
+        feat_mat_active = feat_mat[active_mask]
+        all_locs_active = [loc for loc, a in zip(all_locs, active_mask) if a]
+        horizons_h_active = horizons_h[active_mask]
+    else:
+        active_mask = np.ones(n, dtype=bool)
+        feat_mat_active = feat_mat
+        all_locs_active = all_locs
+        horizons_h_active = horizons_h
+
+    n_active = len(all_locs_active)
+    log.info(
+        "SeverityPredict TS=%s  total_locs=%d  active_locs=%d (active_only=%s)",
+        target_ts, n, n_active, active_only,
+    )
+
+    if n_active == 0:
+        return []
+
     # ── 3–4. Naive + Baseline ─────────────────────────────────────
-    naive_preds    = naive_predict(feat_mat)
-    baseline_preds = baseline_predict(feat_mat)
+    naive_preds    = naive_predict(feat_mat_active)
+    baseline_preds = baseline_predict(feat_mat_active)
 
     # ── 5. LightGBM (15 features) ────────────────────────────────
     wd  = target_ts.weekday()
     iwe = int(wd >= 5)
-    ctx_cols = np.array([[target_ts.hour, wd, iwe, horizon_h]] * n, dtype=np.float32)
-    X_lgbm = np.hstack([feat_mat, ctx_cols])
+    ctx_cols = np.array([[target_ts.hour, wd, iwe, horizon_h]] * n_active, dtype=np.float32)
+    X_lgbm = np.hstack([feat_mat_active, ctx_cols])
 
-    lgbm_preds = lgbm_severity.predict(X_lgbm)
+    lgbm_raw  = lgbm_severity.predict(X_lgbm)
+
+    # Normalize Tweedie output to a 0–100 severity risk index.
+    # The Tweedie model predicts values in the SAME range as training labels
+    # (severity_score: min≈0.08, max≈160, mean≈1.57, p99≈11.6).
+    # Unlike the count Poisson model (which outputs tiny 0.001–0.02 values),
+    # NO ×1000 scaling is needed — applying it would give nonsense like 3951.
+    # Instead we normalize by the dataset max (160) → score stays in 0–100.
+    SEV_MAX = 160.0   # 99th-pct ≈ 11.6; absolute max ≈ 160 in training data
+    lgbm_preds = np.clip(lgbm_raw / SEV_MAX * 100.0, 0, 100)
 
     # ── 6. Assemble + merge explainability fields ─────────────────
     result_df = pd.DataFrame({
-        "location_key":        all_locs,
+        "location_key":        all_locs_active,
         "naive_prediction":    naive_preds.astype(float),
         "baseline_prediction": baseline_preds.astype(float),
         "lightgbm_prediction": lgbm_preds.astype(float),
@@ -223,9 +263,9 @@ async def severity_predict(
     if top_n is not None:
         merged = merged.head(top_n)
 
-    log.debug(
-        "SeverityPredict TS=%s  locs=%d  max_lgbm=%.4f",
-        target_ts, len(merged),
+    log.info(
+        "SeverityPredict TS=%s  active_locs=%d  returned=%d  max_lgbm=%.4f",
+        target_ts, n_active, len(merged),
         merged["lightgbm_prediction"].iloc[0] if len(merged) else 0,
     )
 

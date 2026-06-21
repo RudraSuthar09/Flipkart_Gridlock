@@ -89,13 +89,17 @@ async def predict(
             "Target timestamp in ISO-8601 format (e.g. '2024-03-26T14:00:00'). "
             "Minute/second components are ignored — predictions are hourly."
         ),
-        example="2024-03-26T14:00:00",
+        examples=["2024-03-26T14:00:00"],
     ),
     top_n: Optional[int] = Query(
         None,
         ge=1,
         le=6333,
         description="Return only the top-N riskiest locations (default: all).",
+    ),
+    active_only: bool = Query(
+        True,
+        description="If true (default), only return locations with actual historical activity in the lookback window (at least one non-zero lookback feature). Set to false to return all locations.",
     ),
 ) -> List[PredictionRecord]:
     """
@@ -151,23 +155,55 @@ async def predict(
     feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs, horizons_h)
     # feat_mat: shape (n, 11), dtype float32
 
+    # ── Filter: keep only locations with actual historical data ───
+    # A location has activity if ANY of its 11 lookback features is > 0.
+    # Without this, LightGBM returns a small positive Poisson prior for
+    # every location, flooding the map with meaningless dots.
+    has_activity = feat_mat.any(axis=1)  # shape (n,), bool
+
+    if active_only:
+        active_mask = has_activity
+        feat_mat_active = feat_mat[active_mask]
+        all_locs_active = [loc for loc, a in zip(all_locs, active_mask) if a]
+        horizons_h_active = horizons_h[active_mask]
+    else:
+        active_mask = np.ones(n, dtype=bool)
+        feat_mat_active = feat_mat
+        all_locs_active = all_locs
+        horizons_h_active = horizons_h
+
+    n_active = len(all_locs_active)
+    log.info(
+        "Predict TS=%s  total_locs=%d  active_locs=%d (active_only=%s)",
+        target_ts, n, n_active, active_only,
+    )
+
+    if n_active == 0:
+        return []
+
     # ── 3–4. Naive + Baseline (pure numpy) ───────────────────────
-    naive_preds    = naive_predict(feat_mat)
-    baseline_preds = baseline_predict(feat_mat)
+    naive_preds    = naive_predict(feat_mat_active)
+    baseline_preds = baseline_predict(feat_mat_active)
 
     # ── 5. LightGBM (15 features: 11 lookback + hour/weekday/is_weekend/horizon)
     wd  = target_ts.weekday()      # Timestamp.weekday() IS callable (not property)
     iwe = int(wd >= 5)
     ctx_cols = np.array(
-        [[target_ts.hour, wd, iwe, horizon_h]] * n, dtype=np.float32
-    )                              # shape (n, 4)
-    X_lgbm = np.hstack([feat_mat, ctx_cols])   # shape (n, 15)
+        [[target_ts.hour, wd, iwe, horizon_h]] * n_active, dtype=np.float32
+    )                              # shape (n_active, 4)
+    X_lgbm = np.hstack([feat_mat_active, ctx_cols])   # shape (n_active, 15)
 
-    lgbm_preds = lgbm.predict(X_lgbm)
+    lgbm_raw  = lgbm.predict(X_lgbm)
+
+    # Scale Poisson rate to a readable 0–100 risk index.
+    # The model outputs expected violations/hr in the 0.001–0.02 range.
+    # Multiplying by 1000 gives a 1–20 risk score while preserving ranking.
+    LGBM_SCALE = 1000.0
+    lgbm_preds = lgbm_raw * LGBM_SCALE
 
     # ── 6. Assemble result DataFrame + rank ──────────────────────
     result_df = pd.DataFrame({
-        "location_key":           all_locs,
+        "location_key":           all_locs_active,
         "naive_prediction":       naive_preds.astype(float),
         "baseline_prediction":    baseline_preds.astype(float),
         "lightgbm_prediction":    lgbm_preds.astype(float),
@@ -187,9 +223,9 @@ async def predict(
     if top_n is not None:
         merged = merged.head(top_n)
 
-    log.debug(
-        "Predict TS=%s  locs=%d  max_lgbm=%.4f",
-        target_ts, len(merged),
+    log.info(
+        "Predict TS=%s  active_locs=%d  returned=%d  max_lgbm=%.4f",
+        target_ts, n_active, len(merged),
         merged["lightgbm_prediction"].iloc[0] if len(merged) else 0,
     )
 

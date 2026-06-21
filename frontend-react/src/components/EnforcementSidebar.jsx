@@ -42,8 +42,9 @@ const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSever
             const score = pred[key] || 0;
             // Congestion % = score as % of global max (0–100)
             const congestionPct = Math.min(99, Math.round((score / effectiveMax) * 100));
-            // Active violations = naive_prediction (raw count model) rounded to int
-            const violations = Math.max(1, Math.round(pred.naive_prediction || pred.baseline_prediction || score));
+            // Active violations = naive_prediction (yesterday's same-hour count — real unit)
+            // Fall back to baseline, then a minimum of 1
+            const violations = Math.max(1, Math.round(pred.naive_prediction || pred.baseline_prediction || 1));
             const color = colorFn(score / effectiveMax);
 
             return (
@@ -122,7 +123,7 @@ const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSever
                     </div>
                     <div className="es-meta-item">
                       <span className="es-meta-label">Raw Score</span>
-                      <span className="es-meta-val">{score.toFixed(4)}</span>
+                      <span className="es-meta-val">{score.toFixed(2)}</span>
                     </div>
                   </div>
                 )}

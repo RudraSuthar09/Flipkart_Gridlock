@@ -101,7 +101,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 
 ### 3. Serve the frontend
 
-```powershell
+```powershellsimilarly
 cd frontend
 python -m http.server 9000
 # Then open http://localhost:9000

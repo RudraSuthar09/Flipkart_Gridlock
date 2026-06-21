@@ -51,7 +51,7 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
     const key    = scoreKey(selectedModel);
     const colorFn = colorScheme === 'severity' ? sevRiskColor : riskColor;
 
-    // Sort descending so we can compute rank and decide visual weight
+    // Sort descending — backend already filters to active locations only
     const sorted = [...predictions].sort((a, b) => (b[key] || 0) - (a[key] || 0));
     const n      = sorted.length;
 
@@ -170,22 +170,22 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
       ${sevFields}
       <div class="popup-scores">
         <div class="popup-score ${model === 'lightgbm' ? 'active-score' : ''}">
-          <span class="score-label">LightGBM</span>
-          <span class="score-val">${(loc.lightgbm_prediction || 0).toFixed(4)}</span>
+          <span class="score-label">Risk Score (AI)</span>
+          <span class="score-val">${(loc.lightgbm_prediction || 0).toFixed(2)}</span>
         </div>
         <div class="popup-score ${model === 'baseline' ? 'active-score' : ''}">
-          <span class="score-label">Baseline</span>
-          <span class="score-val">${(loc.baseline_prediction || 0).toFixed(4)}</span>
+          <span class="score-label">Baseline (avg)</span>
+          <span class="score-val">${(loc.baseline_prediction || 0).toFixed(2)}</span>
         </div>
         <div class="popup-score ${model === 'naive' ? 'active-score' : ''}">
-          <span class="score-label">Naive</span>
-          <span class="score-val">${(loc.naive_prediction || 0).toFixed(4)}</span>
+          <span class="score-label">Naive (yesterday)</span>
+          <span class="score-val">${(loc.naive_prediction || 0).toFixed(1)}</span>
         </div>
       </div>
       <div class="popup-risk-bar">
         <div class="popup-risk-fill" style="width:${visualPct}%;background:${color}"></div>
       </div>
-      <div class="popup-risk-label">Visual: ${visualPct}% · Raw score: ${score.toFixed(4)} · Rank #${rank}</div>
+      <div class="popup-risk-label">Risk: ${visualPct}% intensity · Score: ${score.toFixed(2)} · Rank #${rank}</div>
     </div>`;
 }
 

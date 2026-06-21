@@ -29,8 +29,12 @@ VEHICLE_TYPE_MAPPING   = MODELS_DIR / "vehicle_type_mapping.json"
 CORS_ORIGINS = [
     "http://localhost:9000",   # vanilla JS dev server
     "http://localhost:3000",   # CRA dev server (if used)
+    "http://localhost:5173",   # Vite dev server (React frontend)
+    "http://localhost:5174",   # Vite fallback port
     "http://127.0.0.1:9000",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
 ]
 
 # ── Training split ─────────────────────────────────────────────────────────

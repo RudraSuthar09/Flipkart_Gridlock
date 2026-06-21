@@ -137,7 +137,7 @@ const ControlsSidebar = ({
                     </div>
                   </div>
                   <div className="cs-top-score-wrap">
-                    <div className="cs-top-score">{score.toFixed(3)}</div>
+                    <div className="cs-top-score">{score.toFixed(2)}</div>
                     <div className="cs-top-bar-track">
                       <div className="cs-top-bar-fill" style={{ width: `${pct}%`, background: color }} />
                     </div>
@@ -157,11 +157,11 @@ const ControlsSidebar = ({
         </div>
         <div className="cs-stat-item">
           <span>Displayed</span>
-          <strong>{predictions.length ? Math.min(predictions.length, displayTopN || predictions.length).toLocaleString() : '—'}</strong>
+          <strong>{predictions.length ? predictions.length.toLocaleString() : '—'}</strong>
         </div>
         <div className="cs-stat-item">
-          <span>Max Score</span>
-          <strong>{predictions.length ? maxScore.toFixed(3) : '—'}</strong>
+          <span>Max Risk Score</span>
+          <strong>{predictions.length ? maxScore.toFixed(2) : '—'}</strong>
         </div>
       </div>
     </aside>
