@@ -136,6 +136,20 @@ async function runPrediction() {
     updateMapMarkers();
     updateTop5();
     updateStats();
+
+    // Store globally for chatbot and region explainer
+    window.lastPredictionData = predState.predictions;
+    if (typeof _reUpdateData === 'function') {
+      _reUpdateData(predState.predMap, predState.predictions);
+    }
+    // Refresh AI bar
+    if (typeof updatePageBar === 'function') {
+      updatePageBar('prediction', predState.predictions);
+    }
+    // Init region explainer (no-op if already done)
+    if (typeof initRegionExplainer === 'function') {
+      initRegionExplainer(predState.predMap, predState.predictions, 'prediction');
+    }
   } catch (err) {
     setApiStatus('error', 'Prediction failed: ' + err.message);
     console.error(err);
@@ -195,7 +209,7 @@ function updateMapMarkers() {
       }
     );
 
-    marker.bindPopup(buildPopup(loc, rank, model, score, effectiveMax), { maxWidth: 280 });
+    marker.bindPopup(buildPopup(loc, rank, model, score, effectiveMax), { maxWidth: 320 });
     predState.markerLayer.addLayer(marker);
   });
 
@@ -207,11 +221,22 @@ function updateMapMarkers() {
 }
 
 function buildPopup(loc, rank, model, score, effectiveMax) {
-  const pct = effectiveMax > 0 ? ((score / effectiveMax) * 100).toFixed(1) : '0.0';
+  const pct    = effectiveMax > 0 ? ((score / effectiveMax) * 100).toFixed(1) : '0.0';
   const isTop5 = rank <= 5;
   const badge  = isTop5
     ? `<span class="popup-rank-badge popup-rank-top">#${rank} HOTSPOT</span>`
     : `<span class="popup-rank-badge">#${rank}</span>`;
+
+  // Encode data into data-* attributes so explainHotspotClick can read them
+  const dataAttrs = [
+    `data-key="${esc(loc.location_key)}"`,
+    `data-area="${esc(loc.area || '')}"`,
+    `data-station="${esc(loc.police_station || '')}"`,
+    `data-score="${score.toFixed(6)}"`,
+    `data-rank="${rank}"`,
+    `data-model="${model}"`,
+    `data-pct="${pct}"`,
+  ].join(' ');
 
   return `
     <div class="pred-popup">
@@ -239,7 +264,51 @@ function buildPopup(loc, rank, model, score, effectiveMax) {
         <div class="popup-risk-fill" style="width:${pct}%;background:${riskColor(score / (effectiveMax || 1))}"></div>
       </div>
       <div class="popup-risk-label">Risk: ${pct}% of max</div>
+      <div class="popup-ai-section">
+        <button class="popup-ai-btn" ${dataAttrs} onclick="explainHotspotClick(this)">
+          🤖 Explain this prediction
+        </button>
+        <div class="popup-ai-result"></div>
+      </div>
     </div>`;
+}
+
+/* ── AI hotspot explanation (called from popup onclick) ── */
+async function explainHotspotClick(btn) {
+  if (btn.disabled) return;
+
+  const key     = btn.dataset.key;
+  const area    = btn.dataset.area;
+  const station = btn.dataset.station;
+  const score   = parseFloat(btn.dataset.score);
+  const rank    = parseInt(btn.dataset.rank);
+  const model   = btn.dataset.model;
+  const pct     = btn.dataset.pct;
+
+  const section  = btn.closest('.popup-ai-section');
+  const resultEl = section && section.querySelector('.popup-ai-result');
+  if (!resultEl) return;
+
+  btn.disabled    = true;
+  btn.textContent = '⌛ Analyzing…';
+  resultEl.innerHTML = '<div class="popup-ai-loading"><span></span><span></span><span></span></div>';
+
+  const dtInput = document.getElementById('pred-datetime');
+  const ts      = dtInput ? dtInput.value : 'the selected time';
+
+  const system = `You are a Bengaluru traffic analyst. Answer in 2 sentences max (under 70 words). Name the junction directly. Be precise.`;
+  const user   = `Junction: "${key}" | Area: ${area || 'Bengaluru'} | Predicted score: ${score.toFixed(3)} (rank #${rank}) | Time: ${ts}
+Why is this junction predicted high-risk at this time? Give one enforcement recommendation.`;
+
+  const explanation = await callGroqChat(system, user);
+
+  resultEl.innerHTML = `<p class="popup-ai-text">${_escPopup(explanation)}</p>`;
+  btn.textContent = '🔁 Re-analyze';
+  btn.disabled    = false;
+}
+
+function _escPopup(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function esc(v) {
@@ -350,4 +419,9 @@ function initPredPage() {
 
   // ── API health check ─────────────────────────────
   checkApiHealth();
+
+  // ── Region drag-select tool (button always visible) ─
+  if (typeof initRegionExplainer === 'function') {
+    initRegionExplainer(predState.predMap, null, 'prediction');
+  }
 }

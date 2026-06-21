@@ -97,6 +97,19 @@ function showPage(name) {
   if (name === 'severity') {
     if (typeof initSeverityPage === 'function') initSeverityPage();
   }
+
+  // AI page bar — trigger for the three data pages (not home)
+  const _aiBarMap = {
+    pastData:       'past-data',
+    onlyPrediction: 'prediction',
+    severity:       'severity',
+  };
+  if (_aiBarMap[name] && typeof updatePageBar === 'function') {
+    const _aiData = name === 'onlyPrediction' ? window.lastPredictionData
+                  : name === 'severity'        ? window.lastSeverityData
+                  : null;
+    updatePageBar(_aiBarMap[name], _aiData);
+  }
 }
 
 function getRoute() {
@@ -221,6 +234,11 @@ function initMapPage() {
 
   canvasLayer = new ViolationCanvasLayer(openDetailPanel);
   canvasLayer.addTo(map);
+
+  // Region drag-select AI tool for past data
+  if (typeof initRegionExplainer === 'function') {
+    initRegionExplainer(map, state.allPoints, 'past-data');
+  }
 
   // Basemap select
   const basemapEl = document.getElementById('basemap-select');
@@ -432,6 +450,8 @@ function applyFilters() {
 
   const agg = aggregatePoints(filtered);
   if (canvasLayer) canvasLayer.setPoints(agg);
+  window.lastPastData = filtered;
+  if (typeof _reUpdateData === 'function' && map) _reUpdateData(map, filtered);
 
   document.getElementById('total-count').textContent    = fmt(state.allPoints.length);
   document.getElementById('filtered-count').textContent = fmt(filtered.length);

@@ -169,6 +169,16 @@ async function runSevPrediction() {
     updateSevMapMarkers();
     updateSevTop5();
     updateSevStats();
+
+    // Store globally for chatbot / region explainer
+    window.lastSeverityData = sevState.predictions;
+    if (typeof _reUpdateData === 'function') {
+      _reUpdateData(sevState.sevMap, sevState.predictions);
+    }
+    // Refresh AI bar with new results
+    if (typeof updatePageBar === 'function') {
+      updatePageBar('severity', sevState.predictions);
+    }
   } catch (err) {
     setSevApiStatus('error', 'Prediction failed: ' + err.message);
     console.error(err);
@@ -436,4 +446,9 @@ function initSeverityPage() {
 
   // ── API health + confidence banner ───────────────────────────
   checkSevApiHealth();
+
+  // ── Region drag-select AI tool ────────────────────────────────
+  if (typeof initRegionExplainer === 'function') {
+    initRegionExplainer(sevState.sevMap, sevState.predictions, 'severity');
+  }
 }

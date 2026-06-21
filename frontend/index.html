@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="src/styles.css" />
+    <link rel="stylesheet" href="src/ai/ai_styles.css" />
   </head>
   <body>
 
@@ -87,6 +88,7 @@
 
     <!-- ══ PAST-DATA PAGE ══════════════════════════════════════════ -->
     <div id="page-past-data" class="page" hidden>
+      <div id="ai-bar-past-data" class="ai-page-bar" data-accent="#ef4444"></div>
       <main class="app-shell">
 
         <!-- SIDEBAR -->
@@ -237,6 +239,7 @@
 
     <!-- ══ ONLY-PREDICTION PAGE ═══════════════════════════════ -->
     <div id="page-only-prediction" class="page" hidden>
+      <div id="ai-bar-prediction" class="ai-page-bar" data-accent="#6366f1"></div>
       <main class="app-shell">
 
         <!-- SIDEBAR -->
@@ -344,6 +347,7 @@
 
     <!-- ══ TRAFFIC-SEVERITY PAGE ══════════════════════════════════ -->
     <div id="page-traffic-severity" class="page" hidden>
+      <div id="ai-bar-severity" class="ai-page-bar" data-accent="#f59e0b"></div>
       <main class="app-shell">
 
         <!-- SIDEBAR -->
@@ -464,8 +468,24 @@
     </div>
 
     <script src="vendor/leaflet/leaflet.js"></script>
+
+    <!-- AI layer — must load before app scripts -->
+    <script src="src/ai/ai_keys.js"></script>
+    <script src="src/ai/ai_config.js"></script>
+    <script src="src/ai/groq_agent.js"></script>
+    <script src="src/ai/gemini_agent.js"></script>
+    <script src="src/ai/page_bar.js"></script>
+    <script src="src/ai/chatbot.js"></script>
+    <script src="src/ai/region_explainer.js"></script>
+
     <script src="src/app.js"></script>
     <script src="src/only_prediction.js"></script>
     <script src="src/traffic_severity.js"></script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        if (typeof initChatbot === 'function') initChatbot();
+      });
+    </script>
   </body>
 </html>
