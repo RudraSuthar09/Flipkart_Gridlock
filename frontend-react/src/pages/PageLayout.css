@@ -3,6 +3,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .map-section {
@@ -16,6 +17,7 @@
   flex: 1;
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .forecast-drawer {
@@ -40,4 +42,163 @@
   font-size: 14px;
   font-weight: 500;
   color: #374151;
+}
+
+/* ── Mode Info Card — floating bottom-left on map ──── */
+/* Explains the difference between count and severity views in plain English */
+.map-mode-card {
+  position: absolute;
+  bottom: 36px;
+  left: 12px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 10px 14px;
+  max-width: 240px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  border: 1px solid rgba(0,0,0,0.08);
+  font-family: 'Inter', sans-serif;
+}
+
+.map-mode-card-icon {
+  font-size: 18px;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+.map-mode-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 3px;
+}
+
+.map-mode-card-desc {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Mobile bottom navigation tab bar ──────────────── */
+.mobile-tab-bar {
+  display: none;
+}
+
+/* ── Mobile sidebar overlay ─────────────────────────  */
+/* On mobile, sidebars slide in from the side as overlays */
+@media (max-width: 768px) {
+  .page-layout {
+    flex-direction: column;
+  }
+
+  /* Both sidebars hide behind the map by default on mobile */
+  .controls-sidebar,
+  .enforcement-sidebar {
+    position: fixed;
+    top: 52px; /* below TopNav */
+    bottom: 56px; /* above bottom tab bar */
+    z-index: 1500;
+    width: 88vw !important;
+    min-width: unset !important;
+    max-width: 360px;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+    transform: translateX(-110%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .controls-sidebar {
+    left: 0;
+    border-right: none;
+    border-radius: 0 12px 12px 0;
+  }
+
+  .enforcement-sidebar {
+    right: 0;
+    left: auto;
+    border-left: none;
+    border-radius: 12px 0 0 12px;
+    transform: translateX(110%);
+  }
+
+  /* Active state — slides into view */
+  .controls-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .enforcement-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Dim overlay behind open sidebar */
+  .mobile-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1400;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Map fills full height on mobile */
+  .map-section {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Mode info card: move it up above tab bar */
+  .map-mode-card {
+    bottom: 68px;
+    left: 8px;
+    max-width: 200px;
+  }
+
+  /* Bottom tab bar */
+  .mobile-tab-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    z-index: 1600;
+    align-items: stretch;
+  }
+
+  .mobile-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 6px 0;
+  }
+
+  .mobile-tab-btn.active {
+    color: #6366f1;
+  }
+
+  .mobile-tab-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Severity page active tab colour */
+  .mobile-tab-btn.active.sev {
+    color: #f59e0b;
+  }
 }

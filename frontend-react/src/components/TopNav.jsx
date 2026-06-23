@@ -25,6 +25,7 @@ export default function TopNav({ activePage, setActivePage, searchQuery, onSearc
           <button className={`nav-link ${activePage === 'severity'   ? 'active' : ''}`} onClick={() => setActivePage('severity')}>Severity Heatmap</button>
           <button className={`nav-link ${activePage === 'pis'        ? 'active' : ''}`} onClick={() => setActivePage('pis')}>Impact Scores</button>
           <button className={`nav-link ${activePage === 'reports'    ? 'active' : ''}`} onClick={() => setActivePage('reports')}>Reports</button>
+          <button className={`nav-link nav-link-deploy ${activePage === 'deployment' ? 'active' : ''}`} onClick={() => setActivePage('deployment')}>Deployment</button>
           <span className="nav-divider">|</span>
           <a href="http://127.0.0.1:8001/docs" target="_blank" rel="noreferrer" className="nav-link">API Docs ↗</a>
         </nav>

@@ -35,6 +35,7 @@ from app.config import (
     CONTEXT_FEATURES,
     ALL_LGBM_FEATURES,
     MIN_HISTORY_DAYS,
+    DEFAULT_ROAD_WEIGHT,
 )
 
 log = logging.getLogger(__name__)
@@ -74,16 +75,21 @@ def build_pivot_matrix(panel_df: pd.DataFrame) -> PivotData:
     memory and shared across all prediction requests.
 
     Memory footprint:
-      ~6,333 locations × ~3,623 hours × 4 bytes (int32) ≈ 87 MB — acceptable.
+      ~6,333 locations × ~3,623 hours × 4 bytes (int32/float32) ≈ 87 MB — acceptable.
     """
     log.info("Building pivot matrix from panel (%d rows)...", len(panel_df))
     # panel already has one row per (location_key, timestamp) with no dupes —
     # pivot() is faster than pivot_table() because it skips the aggregation step.
+    # Use float32 when source data is float (severity panel), int32 for count panel.
+    # int32-casting float severity scores (e.g. 0.35 → 0) destroys all signal.
+    src_dtype = panel_df["violation_count"].dtype
+    mat_dtype = np.float32 if src_dtype.kind == "f" else np.int32
+
     pivot = (
         panel_df
         .pivot(index="timestamp", columns="location_key", values="violation_count")
         .fillna(0)
-        .astype(np.int32)
+        .astype(mat_dtype)
     )
     matrix     = pivot.values                            # (n_hours, n_locs)
     timestamps = pd.DatetimeIndex(pivot.index)
@@ -148,20 +154,16 @@ def build_feature_matrix(
     # zeroing out all features and making predictions meaningless.
     panel_start_ns = pivot_data.panel_start.value  # nanoseconds
     one_hour_ns = int(pd.Timedelta(hours=1).value)
-    row_pos = np.array(
-        [
-            int((ts.value - panel_start_ns) // one_hour_ns)
-            if not pd.isna(ts) else -1
-            for ts in target_timestamps
-        ],
-        dtype=np.int64,
-    )
+    
+    ts_ns = np.asarray(target_timestamps).astype("datetime64[ns]").view(np.int64)
+    row_pos = ((ts_ns - panel_start_ns) // one_hour_ns).astype(np.int64)
+    is_nat = pd.isna(target_timestamps)
+    if isinstance(is_nat, pd.Series):
+        is_nat = is_nat.values
+    row_pos[is_nat] = -1
     n_rows = pivot_data.matrix.shape[0]
 
-    col_pos = np.array(
-        [pivot_data.loc_to_pos.get(loc, -1) for loc in location_keys],
-        dtype=np.int32,
-    )
+    col_pos = pd.Series(location_keys).map(pivot_data.loc_to_pos).fillna(-1).astype(np.int32).values
 
     if horizons_h is None:
         horizons_h = np.zeros(n, dtype=np.int64)
@@ -232,6 +234,7 @@ def generate_training_examples(
     panel_df: pd.DataFrame,
     pivot_data: PivotData,
     min_history_days: int = MIN_HISTORY_DAYS,
+    road_weights: Dict[str, float] | None = None,
 ) -> pd.DataFrame:
     """
     Generate one training example per (location_key, target_timestamp)
@@ -260,8 +263,8 @@ def generate_training_examples(
     eligible = panel_df[panel_df["timestamp"] >= cutoff_start].copy()
     log.info("Eligible (location, timestamp) pairs: %d", len(eligible))
 
-    target_timestamps = eligible["timestamp"].tolist()
-    location_keys     = eligible["location_key"].tolist()
+    target_timestamps = eligible["timestamp"].values
+    location_keys     = eligible["location_key"].values
     labels            = eligible["violation_count"].values
 
     # Generate random horizons between 0 and 168 (1 week)
@@ -275,7 +278,7 @@ def generate_training_examples(
     result = pd.DataFrame(feat_mat, columns=FEATURE_NAMES)
     result["location_key"]       = location_keys
     result["target_timestamp"]   = pd.to_datetime(target_timestamps)
-    result["violation_count"]    = labels.astype(np.int32)
+    result["violation_count"]    = labels.astype(np.float32)
 
     # Append context features for LightGBM
     ts_arr = pd.to_datetime(target_timestamps)
@@ -283,6 +286,22 @@ def generate_training_examples(
     result["weekday"]    = ts_arr.weekday.astype(np.int8)   # property, not callable
     result["is_weekend"] = (result["weekday"] >= 5).astype(np.int8)
     result["horizon"]    = horizons_h.astype(np.int32)
+
+    # road_weight_osm: static per-location feature from OSM road class lookup.
+    # Encodes road capacity (0.15=motorway → 1.0=footway). The model learns that
+    # violations on narrow residential roads have higher congestion impact than
+    # the same count on a 6-lane arterial.
+    # Falls back to DEFAULT_ROAD_WEIGHT (0.45 = tertiary) when OSM lookup missing.
+    if road_weights is not None:
+        result["road_weight_osm"] = (
+            pd.Series(location_keys)
+            .map(road_weights)
+            .fillna(DEFAULT_ROAD_WEIGHT)
+            .astype(np.float32)
+            .values
+        )
+    else:
+        result["road_weight_osm"] = np.float32(DEFAULT_ROAD_WEIGHT)
 
     log.info(
         "Training examples generated: %d rows  "

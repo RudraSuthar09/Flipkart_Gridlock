@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from app.config import FEATURE_NAMES, ALL_LGBM_FEATURES
+from app.config import FEATURE_NAMES, ALL_LGBM_FEATURES, DEFAULT_ROAD_WEIGHT
 from app.schemas import (
     SeverityHealthResponse,
     SeverityLocationRecord,
@@ -198,10 +198,10 @@ async def severity_predict(
     feat_mat = build_feature_matrix(pivot_data, all_ts, all_locs, horizons_h)
 
     # ── Filter: keep only locations with actual historical data ───
-    # Same logic as the count-based endpoint: only locations where at
-    # least one of the 11 lookback features is non-zero have real data
-    # backing the severity prediction. All-zero rows are cold-start and
-    # produce meaningless Tweedie prior scores.
+    # Check ALL 11 lookback features — a location passes if ANY feature
+    # is non-zero (i.e. any historical severity signal exists). This is
+    # maximally permissive: weekly-only patterns (same_hour_wd features)
+    # still pass even if recent hours and same-day features are all zero.
     has_activity = feat_mat.any(axis=1)  # shape (n,), bool
 
     if active_only:
@@ -228,22 +228,55 @@ async def severity_predict(
     naive_preds    = naive_predict(feat_mat_active)
     baseline_preds = baseline_predict(feat_mat_active)
 
-    # ── 5. LightGBM (15 features) ────────────────────────────────
+    # ── 5. LightGBM (16 features: 11 lookback + hour/weekday/is_weekend/horizon/road_weight_osm)
     wd  = target_ts.weekday()
     iwe = int(wd >= 5)
-    ctx_cols = np.array([[target_ts.hour, wd, iwe, horizon_h]] * n_active, dtype=np.float32)
+    rw_dict = getattr(request.app.state, "road_weights", {})
+    road_w  = np.array(
+        [rw_dict.get(loc, DEFAULT_ROAD_WEIGHT) for loc in all_locs_active],
+        dtype=np.float32,
+    )
+    ctx_cols = np.column_stack([
+        np.full(n_active, target_ts.hour, dtype=np.float32),
+        np.full(n_active, wd,             dtype=np.float32),
+        np.full(n_active, iwe,            dtype=np.float32),
+        np.full(n_active, horizon_h,      dtype=np.float32),
+        road_w,
+    ])
     X_lgbm = np.hstack([feat_mat_active, ctx_cols])
 
     lgbm_raw  = lgbm_severity.predict(X_lgbm)
 
-    # Normalize Tweedie output to a 0–100 severity risk index.
-    # The Tweedie model predicts values in the SAME range as training labels
-    # (severity_score: min≈0.08, max≈160, mean≈1.57, p99≈11.6).
-    # Unlike the count Poisson model (which outputs tiny 0.001–0.02 values),
-    # NO ×1000 scaling is needed — applying it would give nonsense like 3951.
-    # Instead we normalize by the dataset max (160) → score stays in 0–100.
-    SEV_MAX = 160.0   # 99th-pct ≈ 11.6; absolute max ≈ 160 in training data
-    lgbm_preds = np.clip(lgbm_raw / SEV_MAX * 100.0, 0, 100)
+    # Robust percentile-based calibration for Tweedie severity predictions.
+    #
+    # The Tweedie model with log-link is systematically biased toward zero on
+    # sparse data (99.6% zero labels). Mean-matching calibration fails because
+    # the means are dominated by the mass of near-zero values.
+    #
+    # Instead, we calibrate using the TOP of the distribution:
+    #   - Reference scale = P90 of non-zero baseline predictions (historical reality)
+    #   - Model scale     = P90 of non-zero lgbm predictions (model output)
+    #   - Calibration factor = reference / model
+    #
+    # This preserves LightGBM's learned relative ranking while fixing the
+    # absolute magnitude to match historical severity observations.
+    # Final scores are further scaled by 100× to produce human-readable values.
+    nz_baseline = baseline_preds[baseline_preds > 0]
+    nz_lgbm    = lgbm_raw[lgbm_raw > 1e-12]
+
+    if len(nz_lgbm) > 0 and len(nz_baseline) > 0:
+        ref_scale   = np.percentile(nz_baseline, 90)
+        model_scale = np.percentile(nz_lgbm, 90)
+        if model_scale > 1e-12 and ref_scale > 1e-12:
+            calib    = min(ref_scale / model_scale, 5000.0)
+            lgbm_raw = lgbm_raw * calib
+    elif len(nz_lgbm) > 0:
+        # No baseline signal — just scale up raw Tweedie output
+        lgbm_raw = lgbm_raw * 1000.0
+
+    # Scale to human-readable severity units (0–~50 range for typical data)
+    SEVERITY_DISPLAY_SCALE = 100.0
+    lgbm_preds = lgbm_raw * SEVERITY_DISPLAY_SCALE
 
     # ── 6. Assemble + merge explainability fields ─────────────────
     result_df = pd.DataFrame({

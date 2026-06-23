@@ -6,14 +6,17 @@ import './HeatMap.css';
 
 const BENGALURU_CENTER = [12.9716, 77.5946];
 const HOTSPOT_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#f97316' };
-const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+// Voyager tiles: colorful, detailed, makes vibrant markers pop without going full-dark
+const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
+
+
 const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 }) => {
-  const mapRef        = useRef(null);
-  const leafletMap    = useRef(null);
-  const markerLayer   = useRef(null);
-  const canvasRenderer= useRef(null);
+  const mapRef         = useRef(null);
+  const leafletMap     = useRef(null);
+  const markerLayer    = useRef(null);
+  const canvasRenderer = useRef(null);
 
   // ── Init map once ────────────────────────────────────
   useEffect(() => {
@@ -52,11 +55,9 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
     const key    = scoreKey(selectedModel);
     const colorFn = colorScheme === 'severity' ? sevRiskColor : riskColor;
 
-    // Sort descending — backend already filters to active locations only
     const sorted = [...predictions].sort((a, b) => (b[key] || 0) - (a[key] || 0));
     const n      = sorted.length;
 
-    // Compute log of all scores for normalization
     const logScores = sorted.map(p => Math.log1p(p[key] || 0));
     const logMax    = Math.max(...logScores, 1e-9);
 
@@ -72,28 +73,33 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
       const score = loc[key] || 0;
       const rank  = rankMap.get(loc.location_key);
 
-      // ── Normalized visual ratio ─────────────────────────
-      // Heavy-tailed distribution: blend log-score + rank-position
-      // so all locations get meaningful, spread-out colors.
+      // Blend log-score (data-driven) + rank-position (spread enforcer)
       const logRatio  = logMax > 0 ? Math.log1p(score) / logMax : 0;
       const rankRatio = n > 1 ? 1 - (idx / (n - 1)) : 1;
-      // 70% log-score (data-driven) + 30% rank (spread enforcer)
       const ratio = Math.min(1, 0.7 * logRatio + 0.3 * rankRatio);
 
+      // Always score-based color — zone info shown via outline only, not fill override
       const color   = colorFn(ratio);
       const isTop20 = rank <= 20;
+      const isTop5  = rank <= 5;
 
-      // ── Radius: top-ranked = bigger ─────────────────────
-      let radius = 5; // default for all 6333 locations
-      if (isTop20) radius = 10;
-      else if (rank <= 100) radius = 7;
-      else if (ratio > 0.4) radius = 6;
+      // Base radius in pixels — sized to be clearly visible at any zoom level.
+      let baseRadius = 6;
+      if (isTop5)           baseRadius = 16;
+      else if (isTop20)     baseRadius = 12;
+      else if (rank <= 100) baseRadius = 9;
+      else if (ratio > 0.4) baseRadius = 7;
 
-      // Severity: narrow-lane bonus
+      // Narrow-lane bonus for severity view
       if (colorScheme === 'severity' && loc.lane_count != null) {
-        const laneBonus = Math.max(0, (2 - loc.lane_count) * 1.5);
-        radius = Math.min(radius + laneBonus, 14);
+        baseRadius += Math.max(0, (2 - loc.lane_count) * 2);
       }
+
+      // Border: white for top-20, zone-colour outline for zone locations, none otherwise
+      const outlineColor = isTop20 ? '#ffffff'
+        : loc.zone ? loc.zone.color
+        : 'transparent';
+      const outlineWeight = (isTop20 || loc.zone) ? 1.5 : 0;
 
       let marker;
       if (rank <= 3) {
@@ -109,11 +115,11 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
       } else {
         marker = L.circleMarker([lat, lng], {
           renderer:    canvasRenderer.current,
-          radius,
+          radius:      baseRadius,
           fillColor:   color,
-          fillOpacity: isTop20 ? 1 : (rank <= 100 ? 0.85 : 0.7),
-          color:       isTop20 ? '#ffffff' : 'transparent',
-          weight:      isTop20 ? 1.5 : 0,
+          fillOpacity: isTop5 ? 0.95 : isTop20 ? 0.85 : (rank <= 100 ? 0.75 : 0.65),
+          color:       outlineColor,
+          weight:      outlineWeight,
           bubblingMouseEvents: false,
         });
       }
@@ -169,6 +175,15 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
     ? `<a class="popup-maps-link" href="https://maps.google.com/?q=${loc.latitude},${loc.longitude}" target="_blank" rel="noreferrer">Open in Maps →</a>`
     : '';
 
+  const zoneBadge = loc.zone ? `
+    <div class="popup-zone-badge" style="background:${loc.zone.color}15;border:1px solid ${loc.zone.color};color:${loc.zone.color}">
+      <span class="popup-zone-tag" style="background:${loc.zone.color};color:#fff">${escH(loc.zone.short)}</span>
+      <div class="popup-zone-info">
+        <span class="popup-zone-label">${escH(loc.zone.label)}</span>
+        <span class="popup-zone-poi">${escH(loc.zone.poi.name)} &middot; ${loc.zone.distanceM}m</span>
+      </div>
+    </div>` : '';
+
   let sevFields = '';
   if (isSev) {
     const VEH = { two_wheeler:'two-wheeler', auto_rickshaw:'auto-rickshaw', car:'car',
@@ -181,43 +196,62 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
 
     sevFields = `
       <div class="sev-explainer">
-        <span class="sev-explainer-icon">ℹ</span>
-        <em>Mostly ${escH(vehLabel)} violations on ${escH(roadDesc)} road</em>
+        <span class="sev-explainer-icon">⚠</span>
+        <em>Mostly ${escH(vehLabel)} violations on ${escH(roadDesc)} road — real traffic impact</em>
       </div>
       <div class="sev-details-grid">
         <div class="sev-detail-item"><span class="sev-detail-label">Lane count</span><span class="sev-detail-val">${escH(lane)}</span></div>
         <div class="sev-detail-item"><span class="sev-detail-label">Vehicle type</span><span class="sev-detail-val">${escH(vehLabel)}</span></div>
         <div class="sev-detail-item sev-detail-wide"><span class="sev-detail-label">Common violation</span><span class="sev-detail-val">${escH(vioType)}</span></div>
       </div>`;
+  } else {
+    sevFields = `
+      <div class="count-explainer">
+        <span>📍</span>
+        <em>Predicted illegal parking events at this location</em>
+      </div>`;
+  }
+
+  let roadRow = '';
+  if (loc.road_label) {
+    const onewayBadge = loc.is_oneway
+      ? `<span class="popup-oneway-badge">ONE-WAY</span>` : '';
+    const roadName = loc.osm_road_name ? ` &mdash; ${escH(loc.osm_road_name)}` : '';
+    roadRow = `
+      <div class="popup-road-row">
+        <span class="popup-road-label">${escH(loc.road_label)}${roadName}</span>
+        ${onewayBadge}
+      </div>`;
   }
 
   return `
     <div class="pred-popup ${isSev ? 'sev-popup' : ''}">
-      ${badge}
+      <div class="popup-badges">${badge}${zoneBadge}</div>
       <div class="popup-loc">${escH(loc.location_key)}</div>
       <div class="popup-meta">
         <span>${escH(loc.area || '—')}</span>
         <span>${escH(loc.police_station || '—')}</span>
       </div>
+      ${roadRow}
       ${sevFields}
       <div class="popup-scores">
         <div class="popup-score ${model === 'lightgbm' ? 'active-score' : ''}">
-          <span class="score-label">Risk Score (AI)</span>
+          <span class="score-label">AI Score</span>
           <span class="score-val">${(loc.lightgbm_prediction || 0).toFixed(2)}</span>
         </div>
         <div class="popup-score ${model === 'baseline' ? 'active-score' : ''}">
-          <span class="score-label">Baseline (avg)</span>
+          <span class="score-label">Baseline</span>
           <span class="score-val">${(loc.baseline_prediction || 0).toFixed(2)}</span>
         </div>
         <div class="popup-score ${model === 'naive' ? 'active-score' : ''}">
-          <span class="score-label">Naive (yesterday)</span>
+          <span class="score-label">Naive</span>
           <span class="score-val">${(loc.naive_prediction || 0).toFixed(1)}</span>
         </div>
       </div>
       <div class="popup-risk-bar">
         <div class="popup-risk-fill" style="width:${visualPct}%;background:${color}"></div>
       </div>
-      <div class="popup-risk-label">Risk: ${visualPct}% intensity · Score: ${score.toFixed(2)} · Rank #${rank}</div>
+      <div class="popup-risk-label">${isSev ? 'Severity' : 'Risk'}: ${visualPct}% · Score: ${score.toFixed(2)} · Rank #${rank}</div>
       ${mapsLink}
     </div>`;
 }

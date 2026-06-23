@@ -10,11 +10,18 @@ from typing import Optional
 
 # ── Location (for /locations endpoint) ────────────────────────────────────
 class LocationRecord(BaseModel):
-    location_key:   str
-    latitude:       float
-    longitude:      float
-    area:           Optional[str] = None
-    police_station: Optional[str] = None
+    location_key:    str
+    latitude:        float
+    longitude:       float
+    area:            Optional[str]   = None
+    police_station:  Optional[str]   = None
+    # OSM road class fields (present when road_class_lookup.json is loaded)
+    highway:         Optional[str]   = Field(None, description="OSM highway tag (primary, secondary, etc.)")
+    road_tier:       Optional[int]   = Field(None, description="Road capacity tier 0-5 (0=motorway, 5=service lane)")
+    road_weight_osm: Optional[float] = Field(None, description="OSM-derived road impact weight (lower=wider road)")
+    road_label:      Optional[str]   = Field(None, description="Human-readable road type label")
+    is_oneway:       Optional[bool]  = Field(None, description="True if road is one-way")
+    osm_road_name:   Optional[str]   = Field(None, description="OSM road name")
 
     model_config = {"from_attributes": True}
 
@@ -24,14 +31,19 @@ class PredictionRecord(BaseModel):
     location_key:           str
     latitude:               float
     longitude:              float
-    area:                   Optional[str] = None
-    police_station:         Optional[str] = None
-
-    # Three prediction scores — all on the same scale as violation_count
+    area:                   Optional[str]   = None
+    police_station:         Optional[str]   = None
+    # OSM road class fields
+    highway:                Optional[str]   = None
+    road_tier:              Optional[int]   = None
+    road_weight_osm:        Optional[float] = None
+    road_label:             Optional[str]   = None
+    is_oneway:              Optional[bool]  = None
+    osm_road_name:          Optional[str]   = None
+    # Three prediction scores
     naive_prediction:       float = Field(description="Same hour yesterday (simplest baseline)")
     baseline_prediction:    float = Field(description="Recency-weighted sum of 11 lookback features")
     lightgbm_prediction:    float = Field(description="LightGBM Poisson regression on same features")
-
     # Rank by LightGBM score; 1 = riskiest
     rank_lightgbm: int = Field(description="Rank by lightgbm_prediction descending (1=riskiest)")
 
@@ -52,18 +64,24 @@ class HealthResponse(BaseModel):
 class SeverityLocationRecord(BaseModel):
     """
     /api/v1/traffic-severity/locations — extends LocationRecord with
-    lane data for the data-confidence map layer.
+    lane data and OSM road class data.
     """
     location_key:         str
     latitude:             float
     longitude:            float
     area:                 Optional[str]   = None
     police_station:       Optional[str]   = None
-
     # Lane / road data (from feature_engineered.csv)
-    lane_count:           Optional[float] = Field(None, description="OSM/avg lane count for this location")
+    lane_count:           Optional[float] = Field(None, description="Avg lane count for this location")
     dominant_vehicle_cat: Optional[str]   = Field(None, description="Most common vehicle category at this location")
     dominant_violation:   Optional[str]   = Field(None, description="Most common violation type at this location")
+    # OSM road class fields
+    highway:              Optional[str]   = Field(None, description="OSM highway tag")
+    road_tier:            Optional[int]   = Field(None, description="Road capacity tier 0-5")
+    road_weight_osm:      Optional[float] = Field(None, description="OSM-derived road impact weight")
+    road_label:           Optional[str]   = Field(None, description="Human-readable road type")
+    is_oneway:            Optional[bool]  = Field(None, description="One-way road flag")
+    osm_road_name:        Optional[str]   = Field(None, description="OSM road name")
 
     model_config = {"from_attributes": True}
 
@@ -74,24 +92,28 @@ class SeverityPredictionRecord(BaseModel):
     Severity scores are continuous floats (Tweedie-distributed), not
     integer counts — do NOT compare magnitudes directly with Part 1.
     """
-    location_key:   str
-    latitude:       float
-    longitude:      float
-    area:           Optional[str]   = None
-    police_station: Optional[str]   = None
-
+    location_key:         str
+    latitude:             float
+    longitude:            float
+    area:                 Optional[str]   = None
+    police_station:       Optional[str]   = None
     # Three severity prediction scores
-    naive_prediction:       float = Field(description="Same hour yesterday severity (naive baseline)")
-    baseline_prediction:    float = Field(description="Recency-weighted severity baseline")
-    lightgbm_prediction:    float = Field(description="LightGBM Tweedie severity prediction")
-
+    naive_prediction:     float = Field(description="Same hour yesterday severity (naive baseline)")
+    baseline_prediction:  float = Field(description="Recency-weighted severity baseline")
+    lightgbm_prediction:  float = Field(description="LightGBM Tweedie severity prediction")
     # Rank by LightGBM severity; 1 = highest severity risk
-    rank_lightgbm: int = Field(description="Severity rank (1 = highest predicted severity)")
-
-    # Explainability context
-    lane_count:           Optional[float] = Field(None, description="Road lane count (lower = higher congestion impact)")
-    dominant_vehicle_cat: Optional[str]   = Field(None, description="Most common vehicle category recently at this location")
-    dominant_violation:   Optional[str]   = Field(None, description="Most common violation type at this location")
+    rank_lightgbm:        int   = Field(description="Severity rank (1 = highest predicted severity)")
+    # Explainability context — violation dataset fields
+    lane_count:           Optional[float] = Field(None, description="Road lane count")
+    dominant_vehicle_cat: Optional[str]   = Field(None, description="Most common vehicle category")
+    dominant_violation:   Optional[str]   = Field(None, description="Most common violation type")
+    # OSM road class fields
+    highway:              Optional[str]   = Field(None, description="OSM highway tag")
+    road_tier:            Optional[int]   = Field(None, description="Road capacity tier 0-5")
+    road_weight_osm:      Optional[float] = Field(None, description="OSM-derived road impact weight")
+    road_label:           Optional[str]   = Field(None, description="Human-readable road type")
+    is_oneway:            Optional[bool]  = Field(None, description="One-way road flag")
+    osm_road_name:        Optional[str]   = Field(None, description="OSM road name")
 
     model_config = {"from_attributes": True}
 

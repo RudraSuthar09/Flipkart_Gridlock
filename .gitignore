@@ -55,6 +55,9 @@ outputs/
 cache/
 data/*.csv
 data/*.json
+# Keep the small OSM lookup files — they're generated artifacts but small enough for git
+!data/road_class_lookup.json
+!data/bengaluru_pois.json
 data/processed/
 eda_output/
 *_out.txt

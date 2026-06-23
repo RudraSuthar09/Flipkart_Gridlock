@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Trash2, Send } from 'lucide-react';
+import { MessageCircle, X, Trash2, Send , Bot, Brain, Radar, BotIcon} from 'lucide-react';
 import './Chatbot.css';
 
 const GROQ_KEY    = import.meta.env.VITE_GROQ_KEY;
@@ -66,7 +66,11 @@ const Chatbot = ({ predictions, activePage }) => {
     return [...predictions]
       .sort((a, b) => (b[key] || 0) - (a[key] || 0))
       .slice(0, 5)
-      .map((d, i) => `${i + 1}. ${d.location_key} (${(d[key] || 0).toFixed(3)})`)
+      .map((d, i) => {
+        const road = d.road_label ? ` [${d.road_label}]` : '';
+        const area = d.area ? ` — ${d.area}` : '';
+        return `${i + 1}. ${d.location_key}${area}${road} score=${( d[key] || 0).toFixed(2)}`;
+      })
       .join('; ');
   }, [predictions]);
 
@@ -84,7 +88,7 @@ const Chatbot = ({ predictions, activePage }) => {
     try {
       const histCtx = newMsgs.slice(-8).map(m => `${m.role}: ${m.content}`).join('\n');
       const page = activePage === 'prediction' ? 'Count Heatmap' : 'Severity Heatmap';
-      const system = `You are a Bengaluru traffic analyst AI embedded in the Sugama Sanchara Bengaluru dashboard. Answer in 1-2 sentences max (under 60 words). Be specific, name junctions when possible. Current page: ${page}. Top hotspots: ${top5Text()}.`;
+      const system = `You are a Bengaluru traffic analyst AI embedded in the Sugama Sanchara Bengaluru dashboard. Answer in 1-2 sentences max (under 60 words). Be specific — name junctions, road types, and areas when possible. Road labels in brackets show OSM road class (e.g. [Primary Road] = heavy arterial, [Residential Road] = narrow lane — higher congestion per violation). Current page: ${page}. Top hotspots now: ${top5Text()}.`;
       const userQ = histCtx.length > 50
         ? `Conversation so far:\n${histCtx.slice(-400)}\n\nNew question: ${question}`
         : question;
@@ -127,7 +131,7 @@ const Chatbot = ({ predictions, activePage }) => {
         {/* Header */}
         <div className="chat-header">
           <div className="chat-header-info">
-            <span className="chat-title">🤖 Sugama Sanchara AI</span>
+            <span className="chat-title"><BotIcon size={18} /> Sugama Sanchara AI</span>
             <span className="chat-subtitle">Groq · Llama 3.3 70B</span>
           </div>
           <div className="chat-header-actions">
