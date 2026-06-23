@@ -10,6 +10,10 @@ const HOTSPOT_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#f97316' };
 const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
+const GROQ_KEY   = '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';
+const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
 
 
 const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 }) => {
@@ -126,8 +130,10 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
 
       marker.bindPopup(
         buildPopup(loc, rank, selectedModel, score, logRatio, colorFn, colorScheme),
-        { maxWidth: 320 }
+        { maxWidth: 350 }
       );
+      marker._locData = loc;
+      marker._rank    = rank;
       layer.addLayer(marker);
     });
 
@@ -144,6 +150,94 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
         m.fitBounds(L.latLngBounds(validLatLngs), { padding: [40, 40], maxZoom: 14 });
       }
     }
+
+    const onPopupOpen = async (e) => {
+      const src = e.popup._source;
+      if (!src || !src._locData) return;
+      const loc    = src._locData;
+      const rank   = src._rank;
+      const safeId = loc.location_key.replace(/[^a-z0-9]/gi, '_');
+      const el     = document.getElementById(`ai-suggest-${safeId}`);
+      if (!el || el.dataset.loaded === 'true') return;
+      el.dataset.loaded = 'true';
+
+      const VEH = { two_wheeler:'two-wheeler', auto_rickshaw:'auto-rickshaw', car:'car',
+                    lcv:'light commercial vehicle', bus:'bus', heavy_truck:'heavy truck', tractor:'tractor' };
+      const vehLabel  = VEH[loc.dominant_vehicle_cat] || (loc.dominant_vehicle_cat || 'mixed');
+      const violation = loc.dominant_violation || 'parking violation';
+      const zone      = loc.zone ? loc.zone.label : 'general area';
+      const laneCount = loc.lane_count != null ? loc.lane_count.toFixed(1) : 'unknown';
+
+      const prompt = `You are a traffic flow management expert for Bengaluru. Answer in EXACTLY 2 lines, NO extra text.
+
+Data:
+- Location: ${loc.area || 'Unknown'}, ${loc.police_station || ''} police station
+- Violation: ${violation}
+- Vehicle: ${vehLabel}
+- Lanes: ${laneCount}
+- Zone: ${zone}
+- City rank: #${rank}
+
+Rules:
+- Each answer = max 9 words. Noun phrases only. Be specific to this exact location.
+- REGION = why traffic congestion or violation peaks HERE (land use, road geometry, demand).
+- CONTROL = a traffic MANAGEMENT action to reduce congestion/violation — e.g. deploy personnel, signal retiming, diversion route, barricades, lane channelisation, no-entry hours, dedicated bus bay. NOT enforcement like fines or wheel clamps.
+
+Examples of CORRECT format:
+REGION: Narrow 2-lane road serving high-density bus terminus
+CONTROL: Deploy traffic personnel during morning peak hours
+
+REGION: Commercial market with no service lane for loading
+CONTROL: Enforce one-way flow with movable barricades
+
+REGION: School zone, footpath parking blocks pedestrian movement
+CONTROL: Stagger school timings, deploy marshal at entry gate
+
+Now answer for the data above:
+REGION: [max 9 words]
+CONTROL: [max 9 words, traffic management — no fines/clamps]`;
+
+      try {
+        const res  = await fetch(GROQ_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
+          body:    JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 80, temperature: 0.3 }),
+        });
+        const data       = await res.json();
+        const text       = data.choices?.[0]?.message?.content || '';
+        const regionMatch  = text.match(/REGION:\s*(.+)/);
+        const controlMatch = text.match(/CONTROL:\s*(.+)/);
+        const region  = regionMatch  ? regionMatch[1].trim()  : 'No insight available.';
+        const control = controlMatch ? controlMatch[1].trim() : 'No control action available.';
+
+        el.className = 'popup-ai-suggest';
+        el.innerHTML = `
+          <div class="ai-unified-card">
+            <div class="ai-card-header">
+              <span class="ai-card-title">AI Insights</span>
+              <span class="ai-card-powered">Groq AI</span>
+            </div>
+            <div class="ai-card-row">
+              <div>
+                <span class="ai-card-label">Why here</span>
+                <p class="ai-card-text">${escH(region)}</p>
+              </div>
+            </div>
+            <div class="ai-card-divider"></div>
+            <div class="ai-card-row">
+              <div>
+                <span class="ai-card-label">Traffic Control</span>
+                <p class="ai-card-text">${escH(control)}</p>
+              </div>
+            </div>
+          </div>`;
+      } catch {
+        el.innerHTML = `<span class="ai-suggest-error">AI suggestions unavailable</span>`;
+      }
+    };
+
+    m.on('popupopen', onPopupOpen);
+    return () => m.off('popupopen', onPopupOpen);
   }, [predictions, selectedModel, colorScheme]);
 
   return (
@@ -159,6 +253,7 @@ function escH(v) {
 }
 
 function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
+  const safeId    = loc.location_key.replace(/[^a-z0-9]/gi, '_');
   const visualPct = (logRatio * 100).toFixed(1);
   const isTop5 = rank <= 5;
   const isSev  = colorScheme === 'severity';
@@ -253,6 +348,9 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
       </div>
       <div class="popup-risk-label">${isSev ? 'Severity' : 'Risk'}: ${visualPct}% · Score: ${score.toFixed(2)} · Rank #${rank}</div>
       ${mapsLink}
+      <div id="ai-suggest-${safeId}" class="popup-ai-suggest popup-ai-loading">
+        <span class="ai-loading-dot"></span> Getting AI insights…
+      </div>
     </div>`;
 }
 
