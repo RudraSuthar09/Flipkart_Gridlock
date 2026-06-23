@@ -1,0 +1,12 @@
+.git
+.gitignore
+frontend-react
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+venv
+.venv
+prediction_api/scripts
+*.ipynb
