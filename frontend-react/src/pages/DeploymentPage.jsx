@@ -18,6 +18,7 @@ const DeploymentPage = ({ onPredictionsLoaded }) => {
   const [officerCount, setOfficerCount]   = useState(5);
   const [patrolRadius, setPatrolRadius]   = useState(500);
   const [mobileSidebar, setMobileSidebar] = useState(null);
+  const [showInfoCard, setShowInfoCard]   = useState(true);
 
   useEffect(() => {
     if (sevHealth?.panel_last_updated) {
@@ -83,29 +84,36 @@ const DeploymentPage = ({ onPredictionsLoaded }) => {
       />
 
       <div className="map-section">
-        <DeploymentMap
-          deployment={deployment}
-          patrolRadius={patrolRadius}
-          displayTopN={DISPLAY_TOP_N}
-        />
+        <div className="map-inner">
+          <DeploymentMap
+            deployment={deployment}
+            patrolRadius={patrolRadius}
+            displayTopN={DISPLAY_TOP_N}
+          />
 
-        <div className="map-mode-card">
-          <div className="map-mode-card-icon">
-  <ShieldCheck size={24} />
-</div>
-          <div className="map-mode-card-title">Deployment Optimizer</div>
-          <p className="map-mode-card-desc">
-            Numbered pins = officer positions. Dashed circles = patrol coverage zones.
-            Grey spots = not yet covered.
-          </p>
+          {showInfoCard && (
+            <div className="map-mode-card">
+              <button
+                className="map-mode-card-close"
+                onClick={() => setShowInfoCard(false)}
+                aria-label="Dismiss"
+              >×</button>
+              <div className="map-mode-card-icon"><ShieldCheck size={24} /></div>
+              <div className="map-mode-card-title">Deployment Optimizer</div>
+              <p className="map-mode-card-desc">
+                Numbered pins = officer positions. Dashed circles = patrol coverage zones.
+                Grey spots = not yet covered.
+              </p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="map-loading-overlay">
+              <Loader2 className="spin-icon" size={32} />
+              <p>Fetching severity predictions…</p>
+            </div>
+          )}
         </div>
-
-        {loading && (
-          <div className="map-loading-overlay">
-            <Loader2 className="spin-icon" size={32} />
-            <p>Fetching severity predictions…</p>
-          </div>
-        )}
       </div>
 
       <DeploymentSidebar
