@@ -30,8 +30,9 @@
   color: white;
 }
 
-.cs-brand-icon.prediction { background: #6366f1; }
-.cs-brand-icon.severity   { background: #f59e0b; }
+.cs-brand-icon.prediction  { background: #6366f1; }
+.cs-brand-icon.severity    { background: #f59e0b; }
+.cs-brand-icon.deployment  { background: #3b82f6; }
 
 .cs-brand-icon svg { width: 22px; height: 22px; }
 

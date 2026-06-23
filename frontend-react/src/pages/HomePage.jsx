@@ -2,163 +2,262 @@ import React from 'react';
 import './HomePage.css';
 
 const STATS = [
-  { value: '2,98,450', label: 'Violations Analyzed', sub: 'Nov 2023 – Apr 2024' },
-  { value: '132',      label: 'Named Junctions',     sub: 'Bengaluru city limits' },
-  { value: '66.4%',   label: 'Night-time Violations', sub: '10 PM – 6 AM window' },
-  { value: '6',       label: 'Police Zones',          sub: 'Station-level coverage' },
+  { value: '2,98,450', label: 'Violations Recorded',    sub: 'Nov 2023 – Apr 2024' },
+  { value: '132',      label: 'Named Junctions',        sub: 'Across Bengaluru' },
+  { value: '66.4%',   label: 'Night-time Share',        sub: '10 PM – 6 AM window' },
+  { value: '6',       label: 'Police Zones',            sub: 'Full station coverage' },
 ];
 
-const CAPABILITIES = [
+const MODULES = [
   {
-    icon: '🗺️',
-    title: 'Live Violation Heatmap',
-    desc: 'LightGBM model predicts violation counts for every named junction at any target hour. Hotspots pulse on the map so patrol officers see priorities at a glance.',
-    tag: 'Count Heatmap',
+    num: '01',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+    ),
+    title: 'Count Heatmap',
+    desc: 'LightGBM Poisson model scores every junction per hour. Officers see ranked hotspots at a glance before dispatch.',
+    page: 'prediction',
   },
   {
-    icon: '⚠️',
-    title: 'Severity Scoring',
-    desc: 'A Tweedie regression model weighs vehicle class (PCU), lane blockage, and time-of-day to compute a severity score — not just how many violations, but how bad they are.',
-    tag: 'Severity Heatmap',
+    num: '02',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    ),
+    title: 'Severity Heatmap',
+    desc: 'Tweedie regression weighs vehicle class, lane blockage and time-of-day — measuring impact, not just count.',
+    page: 'severity',
   },
   {
-    icon: '📊',
-    title: 'Parking Impact Score',
-    desc: 'Each junction gets a PIS: vehicle-hours lost per day, economic loss in ₹, enforcement failure rate, and network betweenness centrality. Ranks the 132 junctions by real-world impact.',
-    tag: 'Impact Scores',
+    num: '03',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+    ),
+    title: 'Impact Scores',
+    desc: 'Parking Impact Score ranks junctions by vehicle-hours lost, economic loss in ₹, enforcement failure rate and road centrality.',
+    page: 'pis',
   },
   {
-    icon: '🚗',
-    title: 'Dark Fleet Detection',
-    desc: 'Repeat offenders are clustered by recurrence pattern across junctions. Fleet leaders — vehicles appearing at multiple sites — are surfaced for targeted action.',
-    tag: 'Enforcement Panel',
+    num: '04',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8l5 3-5 3V8z"/>
+      </svg>
+    ),
+    title: 'Route Risk',
+    desc: 'Score any origin-to-destination route by aggregating severity across all junctions the route passes through.',
+    page: 'route',
   },
   {
-    icon: '📈',
-    title: '24-Hour Forecast',
-    desc: 'Parallel multi-horizon predictions for T+1h, T+2h, T+4h, T+8h, and T+24h across the top 5 hotspots. Rising/Easing/Stable badges tell officers what\'s coming.',
-    tag: 'Forecast Panel',
+    num: '05',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+      </svg>
+    ),
+    title: 'Officer Deployment',
+    desc: 'Greedy maximum-coverage optimizer assigns available officers to hotspot clusters to maximise junction coverage.',
+    page: 'deployment',
   },
   {
-    icon: '💬',
-    title: 'AI Enforcement Assistant',
-    desc: 'A Groq/Llama 3.3 70B chatbot with live prediction context injected. Ask "which junction needs a unit at 3am?" and get a grounded, data-backed answer.',
-    tag: 'AI Chatbot',
+    num: '06',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" width="22" height="22">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+    title: 'Station Reports',
+    desc: 'Per-station violation breakdown with bar charts, night-time share and CSV export for operational reporting.',
+    page: 'reports',
   },
 ];
 
-const HOW_IT_WORKS = [
+const PIPELINE = [
   {
-    step: '01',
-    title: 'Ingest & Engineer',
-    desc: '298,450 raw violation records cleaned, geocoded, and transformed into an 11-feature hourly panel: lag counts, rolling means, time cyclical encodings, and PCU-weighted severity.',
+    step: 'INGEST',
+    title: 'Data Collection',
+    body: '298,450 raw challan records, geocoded and timestamped, joined to road network and lane metadata.',
   },
   {
-    step: '02',
-    title: 'Predict',
-    desc: 'LightGBM Poisson (count) and Tweedie (severity) models generate scores per junction per hour. Cold-start handled by baseline and naive fallbacks.',
+    step: 'ENGINEER',
+    title: 'Feature Pipeline',
+    body: '11 hourly features per junction: lag counts, rolling means, PCU-weighted severity, cyclical time encodings.',
   },
   {
-    step: '03',
-    title: 'Rank & Dispatch',
-    desc: 'PIS ranking combines economic loss, vehicle hours wasted, enforcement gap, and road network centrality to give a single prioritized enforcement list per station.',
+    step: 'PREDICT',
+    title: 'ML Inference',
+    body: 'LightGBM Poisson (count) and Tweedie (severity) models. Baseline and naïve fallbacks for cold-start.',
+  },
+  {
+    step: 'RANK',
+    title: 'Enforcement Dispatch',
+    body: 'PIS combines economic loss, vehicle hours wasted, enforcement gap and betweenness to produce a ranked list per station.',
   },
 ];
 
 export default function HomePage({ onNavigate }) {
   return (
-    <div className="home-page">
-      {/* Hero */}
-      <section className="home-hero">
-        <div className="home-hero-content">
-          <div className="home-hero-badge">AI-Powered · Real Data · Bengaluru</div>
-          <h1 className="home-hero-title">
-            Parking Enforcement<br />
-            <span className="home-hero-accent">Intelligence</span> for Traffic Police
-          </h1>
-          <p className="home-hero-desc">
-            Detect illegal parking hotspots. Quantify their impact on traffic flow.
-            Enable targeted, data-driven enforcement — not patrol-based guesswork.
-          </p>
-          <div className="home-hero-actions">
-            <button className="home-cta-primary" onClick={() => onNavigate('prediction')}>
-              Open Operations Center →
-            </button>
-            <button className="home-cta-secondary" onClick={() => onNavigate('reports')}>
-              View Station Reports
-            </button>
+    <div className="hp-root">
+
+      {/* ── Hero banner ─────────────────────────────── */}
+      <section className="hp-hero">
+        <div className="hp-hero-inner">
+          <div className="hp-hero-left">
+            <div className="hp-eyebrow">
+              <span className="hp-eyebrow-line" />
+              Bengaluru Traffic Police · Analytical Intelligence
+            </div>
+            <h1 className="hp-hero-h1">
+              Sugama Sanchara<br />
+              <span className="hp-hero-h1-accent">Enforcement Intelligence</span>
+            </h1>
+            <p className="hp-hero-p">
+              Data-driven parking enforcement for 132 named junctions across
+              Bengaluru. Predict violations, quantify impact, deploy officers
+              where they matter most.
+            </p>
+            <div className="hp-hero-actions">
+              <button className="hp-btn-primary" onClick={() => onNavigate('prediction')}>
+                Open Operations Dashboard
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                  <path d="M3 8h10M9 4l4 4-4 4"/>
+                </svg>
+              </button>
+              <button className="hp-btn-ghost" onClick={() => onNavigate('reports')}>
+                Station Reports
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="home-hero-visual">
-          <div className="home-hero-map-preview">
-            <div className="hmp-dot hmp-dot-1" />
-            <div className="hmp-dot hmp-dot-2" />
-            <div className="hmp-dot hmp-dot-3" />
-            <div className="hmp-dot hmp-dot-4" />
-            <div className="hmp-dot hmp-dot-5" />
-            <div className="hmp-pulse hmp-pulse-1" />
-            <div className="hmp-pulse hmp-pulse-2" />
-            <div className="hmp-grid" />
-            <div className="hmp-label">Bengaluru</div>
+
+          <div className="hp-hero-right">
+            <div className="hp-dashboard-preview">
+              <div className="hdp-topbar">
+                <div className="hdp-dot hdp-dot-r" /><div className="hdp-dot hdp-dot-y" /><div className="hdp-dot hdp-dot-g" />
+                <span className="hdp-topbar-label">Live Operations · Bengaluru</span>
+              </div>
+              <div className="hdp-map-full">
+                {/* Real map screenshot as background */}
+                <img
+                  src="/map-preview.png"
+                  alt="Bengaluru heatmap"
+                  className="hdp-map-img"
+                />
+                {/* Animated pulse dots overlay — mimicking real hotspot positions */}
+                <div className="hdp-overlay-dot hdp-od-red"    style={{ top: '42%', left: '38%' }} />
+                <div className="hdp-overlay-dot hdp-od-orange" style={{ top: '55%', left: '43%' }} />
+                <div className="hdp-overlay-dot hdp-od-orange" style={{ top: '32%', left: '45%' }} />
+                <div className="hdp-overlay-dot hdp-od-amber"  style={{ top: '36%', left: '58%' }} />
+                <div className="hdp-overlay-dot hdp-od-amber"  style={{ top: '48%', left: '55%' }} />
+                <div className="hdp-overlay-dot hdp-od-green"  style={{ top: '18%', left: '48%' }} />
+                <div className="hdp-overlay-dot hdp-od-green"  style={{ top: '40%', left: '28%' }} />
+                <div className="hdp-overlay-dot hdp-od-olive"  style={{ top: '64%', left: '40%' }} />
+                <div className="hdp-overlay-dot hdp-od-olive"  style={{ top: '72%', left: '52%' }} />
+                {/* Primary pulse ring on top hotspot */}
+                <div className="hdp-overlay-pulse hdp-pulse-red"    style={{ top: 'calc(42% - 10px)', left: 'calc(38% - 10px)' }} />
+                <div className="hdp-overlay-pulse hdp-pulse-orange"  style={{ top: 'calc(55% - 8px)',  left: 'calc(43% - 8px)',  animationDelay: '0.7s' }} />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="home-stats">
-        {STATS.map(s => (
-          <div key={s.label} className="home-stat-card">
-            <div className="home-stat-value">{s.value}</div>
-            <div className="home-stat-label">{s.label}</div>
-            <div className="home-stat-sub">{s.sub}</div>
+      {/* ── Key metrics strip ────────────────────────── */}
+      <section className="hp-metrics">
+        {STATS.map((s) => (
+          <div key={s.label} className="hp-metric">
+            <div className="hp-metric-val">{s.value}</div>
+            <div className="hp-metric-label">{s.label}</div>
+            <div className="hp-metric-sub">{s.sub}</div>
           </div>
         ))}
       </section>
 
-      {/* Capabilities */}
-      <section className="home-section">
-        <div className="home-section-header">
-          <h2>What This System Does</h2>
-          <p>Six integrated modules, one unified enforcement intelligence platform.</p>
+      {/* ── Modules grid ─────────────────────────────── */}
+      <section className="hp-section hp-modules-section">
+        <div className="hp-section-head">
+          <div className="hp-section-tag">Platform Modules</div>
+          <h2 className="hp-section-h2">Six Integrated Capabilities</h2>
+          <p className="hp-section-p">
+            Each module is independently actionable and shares a common data pipeline.
+          </p>
         </div>
-        <div className="home-caps-grid">
-          {CAPABILITIES.map(c => (
-            <div key={c.title} className="home-cap-card">
-              <div className="home-cap-icon">{c.icon}</div>
-              <div className="home-cap-tag">{c.tag}</div>
-              <h3 className="home-cap-title">{c.title}</h3>
-              <p className="home-cap-desc">{c.desc}</p>
+        <div className="hp-modules-grid">
+          {MODULES.map((m) => (
+            <button key={m.num} className="hp-module-card" onClick={() => onNavigate(m.page)}>
+              <div className="hp-module-head">
+                <div className="hp-module-icon">{m.icon}</div>
+                <div className="hp-module-num">{m.num}</div>
+              </div>
+              <div className="hp-module-title">{m.title}</div>
+              <div className="hp-module-desc">{m.desc}</div>
+              <div className="hp-module-link">
+                Open module
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" width="10" height="10">
+                  <path d="M2 6h8M6 2l4 4-4 4"/>
+                </svg>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pipeline strip ───────────────────────────── */}
+      <section className="hp-pipeline-section">
+        <div className="hp-section-head hp-section-head-center">
+          <div className="hp-section-tag">Methodology</div>
+          <h2 className="hp-section-h2">End-to-End Data Pipeline</h2>
+          <p className="hp-section-p">From raw challan records to ranked enforcement dispatch in four stages.</p>
+        </div>
+        <div className="hp-pipeline">
+          {PIPELINE.map((p, i) => (
+            <div key={p.step} className="hp-pipe-step">
+              <div className="hp-pipe-connector">
+                <div className="hp-pipe-node">
+                  <span>{String(i + 1).padStart(2, '0')}</span>
+                </div>
+                {i < PIPELINE.length - 1 && <div className="hp-pipe-line" />}
+              </div>
+              <div className="hp-pipe-step-tag">{p.step}</div>
+              <div className="hp-pipe-title">{p.title}</div>
+              <div className="hp-pipe-body">{p.body}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="home-section home-hiw-section">
-        <div className="home-section-header">
-          <h2>How It Works</h2>
-          <p>End-to-end pipeline from raw violation records to ranked enforcement dispatch.</p>
-        </div>
-        <div className="home-hiw-row">
-          {HOW_IT_WORKS.map((h, i) => (
-            <div key={h.step} className="home-hiw-card">
-              <div className="home-hiw-step">{h.step}</div>
-              <h3 className="home-hiw-title">{h.title}</h3>
-              <p className="home-hiw-desc">{h.desc}</p>
-              {i < HOW_IT_WORKS.length - 1 && <div className="home-hiw-arrow">→</div>}
-            </div>
-          ))}
+      {/* ── CTA band ─────────────────────────────────── */}
+      <section className="hp-cta-band">
+        <div className="hp-cta-inner">
+          <div className="hp-cta-left">
+            <div className="hp-cta-label">Ready to operate</div>
+            <div className="hp-cta-title">Open the Operations Dashboard</div>
+            <div className="hp-cta-sub">Models loaded · Data current · 132 junctions indexed</div>
+          </div>
+          <div className="hp-cta-actions">
+            <button className="hp-btn-primary hp-btn-primary-lg" onClick={() => onNavigate('prediction')}>
+              Launch Dashboard
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                <path d="M3 8h10M9 4l4 4-4 4"/>
+              </svg>
+            </button>
+            <button className="hp-btn-ghost hp-btn-ghost-light" onClick={() => onNavigate('pis')}>
+              View Impact Scores
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* CTA footer */}
-      <section className="home-footer-cta">
-        <h2>Ready to deploy?</h2>
-        <p>The operations center is live. Data is loaded. Models are ready.</p>
-        <button className="home-cta-primary large" onClick={() => onNavigate('prediction')}>
-          Open Operations Center →
-        </button>
-      </section>
     </div>
   );
 }

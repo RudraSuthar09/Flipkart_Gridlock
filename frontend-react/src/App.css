@@ -12,4 +12,10 @@
   position: relative;
   display: flex;
   overflow: hidden;
+  width: 100%;
+}
+
+.main-content > * {
+  width: 100%;
+  min-width: 0;
 }
