@@ -569,7 +569,8 @@
 
 /* ── Most Affected Road banner ── */
 .es-most-affected-road {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 4px;
@@ -583,7 +584,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 
@@ -592,20 +593,20 @@
 .emar-road-name {
   font-size: 17px;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--text-main);
   line-height: 1.2;
   margin-bottom: 5px;
 }
 
 .emar-meta {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .emar-loading {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   font-style: italic;
 }
 

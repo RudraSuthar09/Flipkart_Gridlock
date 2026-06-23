@@ -54,7 +54,24 @@ const Chatbot = ({ predictions, activePage }) => {
   const [messages, setMessages] = useState(loadHistory);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(false);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    const showTimer = setTimeout(() => setShowGreeting(true), 3000);
+    return () => clearTimeout(showTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!showGreeting) return;
+    const hideTimer = setTimeout(() => setShowGreeting(false), 9000);
+    return () => clearTimeout(hideTimer);
+  }, [showGreeting]);
+
+  const handleToggle = () => {
+    setShowGreeting(false);
+    setOpen(o => !o);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -116,10 +133,24 @@ const Chatbot = ({ predictions, activePage }) => {
 
   return (
     <>
+      {/* Greeting bubble */}
+      {showGreeting && !open && (
+        <div className="chatbot-greeting">
+          <button className="chatbot-greeting-close" onClick={() => setShowGreeting(false)} aria-label="Dismiss">×</button>
+          <div className="chatbot-greeting-row">
+            <span className="chatbot-greeting-wave">👋</span>
+            <div>
+              <p className="chatbot-greeting-title">Hi! I'm Sugama Sanchara AI</p>
+              <p className="chatbot-greeting-body">Ask me about traffic hotspots, enforcement priorities, or prediction insights!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating toggle button */}
       <button
-        className={`chatbot-toggle ${hasHistory && !open ? 'has-notif' : ''}`}
-        onClick={() => setOpen(o => !o)}
+        className={`chatbot-toggle ${open ? 'chatbot-is-open' : ''} ${hasHistory && !open ? 'has-notif' : ''}`}
+        onClick={handleToggle}
         aria-label="Open AI assistant"
       >
         {open ? <X size={24} /> : <MessageCircle size={24} />}

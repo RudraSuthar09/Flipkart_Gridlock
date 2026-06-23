@@ -54,7 +54,7 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 10px 24px 10px 14px;
   max-width: 240px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   border: 1px solid rgba(0,0,0,0.08);
@@ -80,6 +80,23 @@
   line-height: 1.5;
   margin: 0;
 }
+
+.map-mode-card-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.map-mode-card-close:hover { color: #374151; }
 
 /* ── Mobile bottom navigation tab bar ──────────────── */
 .mobile-tab-bar {

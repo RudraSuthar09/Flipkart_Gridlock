@@ -1,78 +1,98 @@
+/* ── Layout — matches ControlsSidebar structure ───────── */
 .deployment-sidebar {
   width: 320px;
   min-width: 320px;
-  background: var(--bg-color);
+  background: var(--panel-bg);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  padding: 0;
 }
 
-.ds-header {
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--panel-bg);
-}
-
-.ds-header-title {
+/* ── Brand header — mirrors .cs-brand ──────────────────── */
+.ds-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
-.ds-header-icon {
-  color: #3b82f6;
+.ds-brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: #3b82f6;
+  flex-shrink: 0;
 }
 
-.ds-header h2 {
+.ds-brand-icon svg { width: 22px; height: 22px; }
+
+.ds-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-main);
   margin: 0;
 }
 
+.ds-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+/* ── Scrollable body — mirrors .cs-scroll-body ─────────── */
 .ds-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
 }
+.ds-body::-webkit-scrollbar { width: 4px; }
+.ds-body::-webkit-scrollbar-track { background: transparent; }
+.ds-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
 
-/* ── Slider section ───────────────────────── */
+/* ── Section — mirrors .cs-section ─────────────────────── */
 .ds-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ds-section-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-main);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.ds-section-label svg {
-  color: #3b82f6;
+  padding: 10px 20px 0;
   flex-shrink: 0;
 }
 
+.ds-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.ds-section-header svg { color: #3b82f6; flex-shrink: 0; }
+
+.ds-section-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+  flex: 1;
+}
+
+.ds-section-icon { font-size: 16px; }
+
 .ds-section-val {
-  margin-left: auto;
   font-size: 13px;
   font-weight: 800;
   color: #3b82f6;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
+/* ── Sliders — same track style ─────────────────────────── */
 .ds-slider {
   width: 100%;
   appearance: none;
@@ -80,6 +100,7 @@
   border-radius: 3px;
   outline: none;
   cursor: pointer;
+  margin-top: 4px;
 }
 
 .ds-slider-blue {
@@ -112,43 +133,39 @@
   justify-content: space-between;
   font-size: 10px;
   color: var(--text-muted);
+  margin-top: 3px;
 }
 
-/* ── Metrics section ───────────────────────── */
+/* ── Metrics section ─────────────────────────────────────── */
 .ds-metrics-section {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 12px 14px;
+  padding: 10px 20px 0;
 }
 
 .ds-metrics-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 7px;
 }
 
-.ds-metrics-header svg {
-  color: #3b82f6;
+.ds-metrics-header svg { color: #3b82f6; }
+
+.ds-metrics-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
 }
 
 .ds-empty {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   font-style: italic;
-  text-align: center;
-  padding: 12px 0;
+  margin: 0;
 }
 
-.ds-coverage-bar-wrap {
-  margin-bottom: 12px;
-}
+/* Coverage bar */
+.ds-coverage-bar-wrap { margin-bottom: 10px; }
 
 .ds-coverage-bar-label {
   display: flex;
@@ -178,6 +195,7 @@
   transition: width 0.4s ease;
 }
 
+/* Stats grid — same three-box style */
 .ds-stats-grid {
   display: flex;
   gap: 8px;
@@ -185,8 +203,8 @@
 
 .ds-stat-box {
   flex: 1;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px 8px;
   text-align: center;
@@ -210,12 +228,16 @@
   line-height: 1.3;
 }
 
-/* ── Next best deployment ───────────────────── */
+/* ── Next best deployment ─────────────────────────────────── */
 .ds-next-best {
+  padding: 10px 20px 0;
+}
+
+.ds-next-best-inner {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .ds-next-best-label {
@@ -227,7 +249,7 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: #3b82f6;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .ds-next-best-card {
@@ -253,10 +275,7 @@
   text-overflow: ellipsis;
 }
 
-.ds-next-best-area {
-  font-size: 11px;
-  color: #6b7280;
-}
+.ds-next-best-area { font-size: 11px; color: #6b7280; }
 
 .ds-next-best-gain {
   margin-top: 4px;
@@ -265,11 +284,9 @@
   color: #22c55e;
 }
 
-/* ── Officer assignments ─────────────────────── */
+/* ── Officer assignments ──────────────────────────────────── */
 .ds-assignments {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 10px 20px 0;
 }
 
 .ds-assignments-header {
@@ -278,6 +295,7 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
 .ds-assignment-list {
@@ -291,10 +309,12 @@
   align-items: flex-start;
   gap: 10px;
   padding: 9px 10px;
-  background: var(--panel-bg);
+  background: #f9fafb;
   border: 1px solid var(--border-color);
   border-radius: 8px;
+  transition: background 0.15s;
 }
+.ds-assignment-row:hover { background: #f0f9ff; border-color: #bae6fd; }
 
 .ds-officer-badge-wrap {
   display: flex;
@@ -325,10 +345,7 @@
   letter-spacing: 0.2px;
 }
 
-.ds-assignment-reinforce {
-  font-weight: 700;
-  color: #ef4444;
-}
+.ds-assignment-reinforce { font-weight: 700; color: #ef4444; }
 
 .ds-assignment-info {
   flex: 1;
@@ -350,23 +367,36 @@
   margin-top: 1px;
 }
 
-/* ── Footer ──────────────────────────────────── */
-.ds-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
+/* ── Footer stats — mirrors .cs-stats ────────────────────── */
+.ds-footer-stats {
   display: flex;
-  justify-content: space-between;
+  gap: 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: 14px;
+  background: var(--panel-bg);
+  flex-shrink: 0;
+}
+
+.ds-footer-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
   font-size: 11px;
   color: var(--text-muted);
-  background: var(--panel-bg);
+  border-right: 1px solid var(--border-color);
 }
 
-.ds-footer-live {
-  color: #3b82f6;
-  font-weight: 600;
+.ds-footer-stat:last-child { border-right: none; }
+
+.ds-footer-stat strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 4px;
 }
 
-/* ── Mobile ───────────────────────────────────── */
+/* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .deployment-sidebar {
     position: fixed;
