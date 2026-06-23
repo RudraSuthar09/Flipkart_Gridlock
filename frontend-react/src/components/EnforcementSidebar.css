@@ -273,3 +273,188 @@
   color: #22c55e;
   font-weight: 600;
 }
+
+/* Junction name and station label */
+.es-location-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: -8px 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Persistence badge */
+.es-persist-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  margin-left: auto;
+}
+.badge-chronic  { background: #fecaca; color: #991b1b; }
+.badge-periodic { background: #dbeafe; color: #1e40af; }
+
+/* Last updated (replaces "Live sync") */
+.es-last-updated {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Compact list (ranks 4–10) */
+.es-compact-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.es-compact-header {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+.es-compact-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+.es-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+.es-compact-item:last-child { border-bottom: none; }
+.es-compact-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.es-compact-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.es-compact-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-compact-bar-track {
+  width: 50px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.es-compact-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.es-compact-score {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Dark Fleet section */
+.es-fleet-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.es-fleet-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  text-align: left;
+}
+.es-fleet-toggle:hover { background: var(--bg-color); }
+.es-fleet-toggle svg { color: #f59e0b; }
+.es-fleet-count {
+  margin-left: auto;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.es-fleet-body {
+  border-top: 1px solid var(--border-color);
+  padding: 8px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.es-fleet-empty {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+.es-fleet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.es-fleet-item {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.es-fleet-item:last-child { border-bottom: none; }
+.es-fleet-vehicle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: monospace;
+}
+.es-fleet-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.es-fleet-leader {
+  background: #f59e0b;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 10px;
+}

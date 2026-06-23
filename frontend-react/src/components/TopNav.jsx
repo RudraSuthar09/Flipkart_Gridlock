@@ -1,8 +1,8 @@
 import React from 'react';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Search } from 'lucide-react';
 import './TopNav.css';
 
-const TopNav = ({ activePage, setActivePage }) => {
+export default function TopNav({ activePage, setActivePage, searchQuery, onSearchChange, showSearch }) {
   return (
     <header className="topnav">
       <div className="topnav-left">
@@ -20,41 +20,32 @@ const TopNav = ({ activePage, setActivePage }) => {
         </div>
 
         <nav className="topnav-links">
-          <button
-            className={`nav-link ${activePage === 'prediction' ? 'active' : ''}`}
-            onClick={() => setActivePage('prediction')}
-          >
-            Count Heatmap
-          </button>
-          <button
-            className={`nav-link ${activePage === 'severity' ? 'active' : ''}`}
-            onClick={() => setActivePage('severity')}
-          >
-            Severity Heatmap
-          </button>
+          <button className={`nav-link ${activePage === 'home'       ? 'active' : ''}`} onClick={() => setActivePage('home')}>Home</button>
+          <button className={`nav-link ${activePage === 'prediction' ? 'active' : ''}`} onClick={() => setActivePage('prediction')}>Count Heatmap</button>
+          <button className={`nav-link ${activePage === 'severity'   ? 'active' : ''}`} onClick={() => setActivePage('severity')}>Severity Heatmap</button>
+          <button className={`nav-link ${activePage === 'pis'        ? 'active' : ''}`} onClick={() => setActivePage('pis')}>Impact Scores</button>
+          <button className={`nav-link ${activePage === 'reports'    ? 'active' : ''}`} onClick={() => setActivePage('reports')}>Reports</button>
           <span className="nav-divider">|</span>
-          <a
-            href="http://127.0.0.1:8001/docs"
-            target="_blank"
-            rel="noreferrer"
-            className="nav-link"
-          >
-            API Docs ↗
-          </a>
+          <a href="http://127.0.0.1:8001/docs" target="_blank" rel="noreferrer" className="nav-link">API Docs ↗</a>
         </nav>
       </div>
 
-      <div className="topnav-right">
-        <div className="search-bar">
-          <Search size={15} className="search-icon" />
-          <input type="text" placeholder="Search districts..." />
+      {showSearch && (
+        <div className="topnav-right">
+          <div className="search-bar">
+            <Search size={15} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search junctions / stations…"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => onSearchChange('')}>×</button>
+            )}
+          </div>
         </div>
-        <button className="icon-btn" title="Notifications"><Bell size={18} /></button>
-        <button className="icon-btn" title="Settings"><Settings size={18} /></button>
-        <div className="user-avatar">UP</div>
-      </div>
+      )}
     </header>
   );
-};
-
-export default TopNav;
+}

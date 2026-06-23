@@ -51,6 +51,7 @@ dataset.csv
 
 # Large generated outputs — excluded from git
 outputs/eda_report/engineered_dataset.csv
+outputs/
 cache/
 data/*.csv
 data/*.json
@@ -58,3 +59,14 @@ data/processed/
 eda_output/
 *_out.txt
 *_err.txt
+
+# Log files
+*.log
+prediction_api/..backend.log
+
+# Test / debug scripts
+test_startup.py
+test_lgbm.py
+
+# Merge instruction docs (not part of codebase)
+GIT_MERGE_INSTRUCTIONS.md

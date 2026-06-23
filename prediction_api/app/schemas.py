@@ -96,6 +96,54 @@ class SeverityPredictionRecord(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# Analytics schemas (PIS Dashboard, Dark Fleet, Station Stats)
+# ══════════════════════════════════════════════════════════════════════════
+
+class PISRecord(BaseModel):
+    rank: int
+    location_key: str
+    area: Optional[str] = None
+    police_station: Optional[str] = None
+    latitude:  Optional[float] = None
+    longitude: Optional[float] = None
+    pis_score: float
+    vehicle_hours_lost_per_day: float
+    loss_inr_per_day: float
+    enforcement_failure_rate: float
+    mean_blockage_severity: float
+    betweenness: float
+    action_type: str  # 'Intervene' | 'Monitor'
+
+    model_config = {"from_attributes": True}
+
+
+class DarkFleetRecord(BaseModel):
+    vehicle_number: str
+    total_hits: int
+    distinct_junctions: int
+    fleet_cluster_id: str
+    is_fleet_leader: bool
+
+    model_config = {"from_attributes": True}
+
+
+class StationStatsRecord(BaseModel):
+    police_station: str
+    total_violations: int
+    rejection_rate: float
+    violations_per_device: float
+    median_validation_lag_hours: Optional[float] = None
+    flag_high_rejection: bool
+
+    model_config = {"from_attributes": True}
+
+
+class HourlyProfileRecord(BaseModel):
+    hour: int
+    mean_violations: float
+
+
 class SeverityHealthResponse(BaseModel):
     """
     /api/v1/traffic-severity/health — includes data-quality coverage metrics

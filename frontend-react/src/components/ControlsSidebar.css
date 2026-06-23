@@ -331,3 +331,120 @@
   color: var(--text-main);
   margin-top: 4px;
 }
+
+/* Police Station select */
+.cs-station-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-size: 12px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  outline: none;
+}
+.cs-station-select:focus { border-color: #6366f1; }
+
+/* Night mode toggle row */
+.cs-night-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+}
+.cs-night-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.cs-night-hint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.cs-night-toggle {
+  width: 38px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--border-color);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.cs-night-toggle.active { background: #6366f1; }
+.cs-night-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+}
+.cs-night-toggle.active .cs-night-thumb { transform: translateX(18px); }
+
+/* Night mode chart section */
+.cs-night-chart-section {
+  border-bottom: 1px solid var(--border-color);
+}
+.cs-chart-loc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-chart-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+.cs-night-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+/* Scrollable middle body */
+.cs-scroll-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+/* Forecast toggle button */
+.cs-forecast-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 20px 0;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cs-forecast-btn:hover { background: #f3f4f6; }
+.cs-forecast-btn.active { background: #ede9fe; border-color: #6366f1; color: #4f46e5; }

@@ -5,6 +5,7 @@ import { riskColor, sevRiskColor, scoreKey } from '../utils/colorUtils';
 import './HeatMap.css';
 
 const BENGALURU_CENTER = [12.9716, 77.5946];
+const HOTSPOT_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#f97316' };
 const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
@@ -94,15 +95,28 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
         radius = Math.min(radius + laneBonus, 14);
       }
 
-      const marker = L.circleMarker([lat, lng], {
-        renderer:    canvasRenderer.current,
-        radius,
-        fillColor:   color,
-        fillOpacity: isTop20 ? 1 : (rank <= 100 ? 0.85 : 0.7),
-        color:       isTop20 ? '#ffffff' : 'transparent',
-        weight:      isTop20 ? 1.5 : 0,
-        bubblingMouseEvents: false,
-      });
+      let marker;
+      if (rank <= 3) {
+        const hColor = HOTSPOT_COLORS[rank];
+        const icon = L.divIcon({
+          className: '',
+          html: `<div class="hotspot-pulse" style="background:${hColor};"></div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+          popupAnchor: [0, -10],
+        });
+        marker = L.marker([lat, lng], { icon, bubblingMouseEvents: false });
+      } else {
+        marker = L.circleMarker([lat, lng], {
+          renderer:    canvasRenderer.current,
+          radius,
+          fillColor:   color,
+          fillOpacity: isTop20 ? 1 : (rank <= 100 ? 0.85 : 0.7),
+          color:       isTop20 ? '#ffffff' : 'transparent',
+          weight:      isTop20 ? 1.5 : 0,
+          bubblingMouseEvents: false,
+        });
+      }
 
       marker.bindPopup(
         buildPopup(loc, rank, selectedModel, score, logRatio, colorFn, colorScheme),
@@ -113,6 +127,17 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
 
     layer.addTo(m);
     markerLayer.current = layer;
+
+    // Auto-zoom when predictions are a filtered subset (station filter active)
+    if (sorted.length > 0 && sorted.length < 500) {
+      const validLatLngs = sorted
+        .slice(0, Math.min(sorted.length, 100))
+        .map(p => [parseFloat(p.latitude), parseFloat(p.longitude)])
+        .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+      if (validLatLngs.length > 1) {
+        m.fitBounds(L.latLngBounds(validLatLngs), { padding: [40, 40], maxZoom: 14 });
+      }
+    }
   }, [predictions, selectedModel, colorScheme]);
 
   return (
@@ -133,9 +158,16 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
   const isSev  = colorScheme === 'severity';
   const color  = colorFn(logRatio);
 
-  const badge = isTop5
+  const isTop3 = rank <= 3;
+  const badge = isTop3
+    ? `<span class="popup-rank-badge popup-rank-top">🔴 #${rank} PRIORITY ${isSev ? 'SEVERITY ' : ''}HOTSPOT</span>`
+    : isTop5
     ? `<span class="popup-rank-badge popup-rank-top">#${rank} ${isSev ? 'SEVERITY ' : ''}HOTSPOT</span>`
     : `<span class="popup-rank-badge">#${rank}</span>`;
+
+  const mapsLink = isTop3
+    ? `<a class="popup-maps-link" href="https://maps.google.com/?q=${loc.latitude},${loc.longitude}" target="_blank" rel="noreferrer">Open in Maps →</a>`
+    : '';
 
   let sevFields = '';
   if (isSev) {
@@ -186,6 +218,7 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
         <div class="popup-risk-fill" style="width:${visualPct}%;background:${color}"></div>
       </div>
       <div class="popup-risk-label">Risk: ${visualPct}% intensity · Score: ${score.toFixed(2)} · Rank #${rank}</div>
+      ${mapsLink}
     </div>`;
 }
 

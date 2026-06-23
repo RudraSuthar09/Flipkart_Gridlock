@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Trash2, Send } from 'lucide-react';
 import './Chatbot.css';
 
-const GROQ_KEY    = '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';
+const GROQ_KEY    = import.meta.env.VITE_GROQ_KEY;
 const GROQ_URL    = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL  = 'llama-3.3-70b-versatile';
 const CHAT_KEY    = 'urbanintel_chat_history';
