@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-// Use relative paths — proxied by Vite dev server to http://127.0.0.1:8001
-export const API_BASE = '/api/v1';
-export const SEV_API  = '/api/v1/traffic-severity';
+// Use environment variable for production, otherwise relative paths (proxied by Vite dev server)
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+export const API_BASE = `${BASE_URL}/api/v1`;
+export const SEV_API  = `${BASE_URL}/api/v1/traffic-severity`;
 
 export function useApiHealth() {
   const [health, setHealth] = useState(null);
