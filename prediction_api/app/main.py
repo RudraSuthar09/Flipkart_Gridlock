@@ -35,7 +35,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import (
+    CENTRALITY_CACHE,
     CORS_ORIGINS,
+    DATASET_CSV,
     RAW_CSV,
     PARQUET_PATH,
     PARQUET_SEVERITY_PATH,
@@ -43,7 +45,10 @@ from app.config import (
     LGBM_SEVERITY_MODEL,
     PCU_WEIGHTS,
     VEHICLE_TYPE_MAPPING,
+    ROAD_CLASS_LOOKUP,
+    DEFAULT_ROAD_WEIGHT,
 )
+from app.routers.analytics import router as analytics_router
 from app.routers.predictions import router as predictions_router
 from app.routers.traffic_severity import router as severity_router
 
@@ -178,6 +183,17 @@ async def lifespan(app: FastAPI):
     # Part 1 — Count-based models
     # ══════════════════════════════════════════════════════════
 
+    # ── Load OSM road weights once — shared by both Part 1 and Part 2 ──
+    road_weights: dict = {}
+    if ROAD_CLASS_LOOKUP.exists():
+        with open(ROAD_CLASS_LOOKUP, encoding="utf-8") as f:
+            _lookup = json.load(f)
+        road_weights = {k: v["road_weight"] for k, v in _lookup.items()}
+        log.info("OSM road weights loaded: %d locations", len(road_weights))
+    else:
+        log.info("road_class_lookup.json not found — road_weight_osm defaults to %.2f", DEFAULT_ROAD_WEIGHT)
+    app.state.road_weights = road_weights
+
     log.info("[Part 1] Loading count panel from %s ...", PARQUET_PATH)
     panel = load_panel(PARQUET_PATH)
 
@@ -239,6 +255,49 @@ async def lifespan(app: FastAPI):
         )
         app.state.severity_pivot_data    = None
         app.state.severity_location_meta = pd.DataFrame()
+
+    # ══════════════════════════════════════════════════════════
+    # Part 3 — Analytics data (PIS, Dark Fleet, Station Stats)
+    # ══════════════════════════════════════════════════════════
+    try:
+        from app.services.analytics_pipeline import (
+            build_pis_and_profiles,
+            build_dark_fleet_and_station_stats,
+            build_persistence_scores,
+        )
+
+        log.info("[Part 3] Building PIS scores and hourly profiles...")
+        pis_records, hourly_profiles = build_pis_and_profiles(RAW_CSV, CENTRALITY_CACHE)
+
+        log.info("[Part 3] Building dark fleet and station stats...")
+        dark_fleet, fleet_station_map, station_stats = build_dark_fleet_and_station_stats(DATASET_CSV)
+
+        log.info("[Part 3] Computing persistence scores from pivot matrix...")
+        persistence_scores = build_persistence_scores(pivot_data)
+
+        app.state.pis_scores        = pis_records
+        app.state.hourly_profiles   = hourly_profiles
+        app.state.dark_fleet        = dark_fleet
+        app.state.fleet_station_map = fleet_station_map
+        app.state.station_stats     = station_stats
+        app.state.persistence_scores = persistence_scores
+
+        log.info(
+            "[Part 3] Analytics ready: %d PIS records | %d dark fleet vehicles | "
+            "%d stations | %d hourly profiles",
+            len(pis_records),
+            len(dark_fleet),
+            len(station_stats),
+            len(hourly_profiles),
+        )
+    except Exception as exc:
+        log.warning("[Part 3] Analytics build failed (non-fatal): %s", exc)
+        app.state.pis_scores         = []
+        app.state.hourly_profiles    = {}
+        app.state.dark_fleet         = []
+        app.state.fleet_station_map  = {}
+        app.state.station_stats      = []
+        app.state.persistence_scores = {}
 
     # Load severity LightGBM model (Tweedie)
     if LGBM_SEVERITY_MODEL.exists():
@@ -302,8 +361,9 @@ app.add_middleware(
 )
 
 # ── Routers ──────────────────────────────────────────────────────
-app.include_router(predictions_router, prefix="/api/v1", tags=["predictions"])
+app.include_router(predictions_router, prefix="/api/v1",                 tags=["predictions"])
 app.include_router(severity_router,    prefix="/api/v1/traffic-severity", tags=["severity"])
+app.include_router(analytics_router,   prefix="/api/v1",                  tags=["analytics"])
 
 
 # ─────────────────────────────────────────────────────────────────

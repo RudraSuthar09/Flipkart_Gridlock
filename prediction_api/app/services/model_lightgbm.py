@@ -66,6 +66,7 @@ class LGBMPredictor:
         X_val:   Optional[np.ndarray | pd.DataFrame] = None,
         y_val:   Optional[np.ndarray]                 = None,
         feature_names: Optional[list] = None,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> "LGBMPredictor":
         """
         Train on (X_train, y_train), optionally early-stopping on
@@ -76,6 +77,7 @@ class LGBMPredictor:
         X_train, y_train : training features and labels
         X_val, y_val     : optional validation set for early stopping
         feature_names    : column names for SHAP / feature-importance display
+        sample_weight    : optional per-sample weights (e.g. upweight non-zero severity rows)
         """
         try:
             import lightgbm as lgb
@@ -94,7 +96,7 @@ class LGBMPredictor:
             params["learning_rate"], len(y_train), X_train.shape[1],
         )
 
-        dtrain = lgb.Dataset(X_train, label=y_train, feature_name=fnames)
+        dtrain = lgb.Dataset(X_train, label=y_train, feature_name=fnames, weight=sample_weight)
 
         callbacks = [lgb.log_evaluation(period=50)]
 

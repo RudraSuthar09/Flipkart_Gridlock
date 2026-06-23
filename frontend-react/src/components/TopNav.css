@@ -91,6 +91,10 @@
   border-bottom-color: var(--primary-yellow);
 }
 
+.nav-link-deploy.active {
+  border-bottom-color: #3b82f6;
+}
+
 .nav-divider {
   color: var(--border-color);
   font-size: 18px;
@@ -132,16 +136,16 @@
 
 .search-bar input::placeholder { color: var(--text-muted); }
 
-.user-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #1f2937;
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.search-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
   cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
 }
+.search-clear:hover { color: var(--text-main); }
+
+/* user-avatar removed */

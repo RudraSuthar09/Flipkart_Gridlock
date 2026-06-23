@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from app.config import FEATURE_NAMES, ALL_LGBM_FEATURES
+from app.config import FEATURE_NAMES, ALL_LGBM_FEATURES, DEFAULT_ROAD_WEIGHT
 from app.schemas import HealthResponse, LocationRecord, PredictionRecord
 from app.services.feature_engineering import build_feature_matrix
 from app.services.model_baseline import naive_predict, baseline_predict
@@ -185,13 +185,22 @@ async def predict(
     naive_preds    = naive_predict(feat_mat_active)
     baseline_preds = baseline_predict(feat_mat_active)
 
-    # ── 5. LightGBM (15 features: 11 lookback + hour/weekday/is_weekend/horizon)
-    wd  = target_ts.weekday()      # Timestamp.weekday() IS callable (not property)
+    # ── 5. LightGBM (16 features: 11 lookback + hour/weekday/is_weekend/horizon/road_weight_osm)
+    wd  = target_ts.weekday()
     iwe = int(wd >= 5)
-    ctx_cols = np.array(
-        [[target_ts.hour, wd, iwe, horizon_h]] * n_active, dtype=np.float32
-    )                              # shape (n_active, 4)
-    X_lgbm = np.hstack([feat_mat_active, ctx_cols])   # shape (n_active, 15)
+    rw_dict = getattr(state, "road_weights", {})
+    road_w  = np.array(
+        [rw_dict.get(loc, DEFAULT_ROAD_WEIGHT) for loc in all_locs_active],
+        dtype=np.float32,
+    )
+    ctx_cols = np.column_stack([
+        np.full(n_active, target_ts.hour, dtype=np.float32),
+        np.full(n_active, wd,             dtype=np.float32),
+        np.full(n_active, iwe,            dtype=np.float32),
+        np.full(n_active, horizon_h,      dtype=np.float32),
+        road_w,
+    ])                             # shape (n_active, 5)
+    X_lgbm = np.hstack([feat_mat_active, ctx_cols])   # shape (n_active, 16)
 
     lgbm_raw  = lgbm.predict(X_lgbm)
 

@@ -273,3 +273,402 @@
   color: #22c55e;
   font-weight: 600;
 }
+
+/* Junction name and station label */
+.es-location-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: -8px 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Persistence badge */
+.es-persist-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  margin-left: auto;
+}
+.badge-chronic  { background: #fecaca; color: #991b1b; }
+.badge-periodic { background: #dbeafe; color: #1e40af; }
+
+/* Last updated (replaces "Live sync") */
+.es-last-updated {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Compact list (ranks 4–10) */
+.es-compact-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.es-compact-header {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+.es-compact-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+.es-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+.es-compact-item:last-child { border-bottom: none; }
+.es-compact-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.es-compact-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.es-compact-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-compact-bar-track {
+  width: 50px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.es-compact-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.es-compact-score {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Dark Fleet section */
+.es-fleet-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.es-fleet-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  text-align: left;
+}
+.es-fleet-toggle:hover { background: var(--bg-color); }
+.es-fleet-toggle svg { color: #f59e0b; }
+.es-fleet-count {
+  margin-left: auto;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.es-fleet-body {
+  border-top: 1px solid var(--border-color);
+  padding: 8px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.es-fleet-empty {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+.es-fleet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.es-fleet-item {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.es-fleet-item:last-child { border-bottom: none; }
+.es-fleet-vehicle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: monospace;
+}
+.es-fleet-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.es-fleet-leader {
+  background: #f59e0b;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+/* ── OSM Zone Badge (inside alert cards) ─────────────── */
+.es-zone-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.es-zone-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.es-zone-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.es-zone-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.es-zone-poi {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Severity reason block inside enforcement card */
+.es-severity-reason {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
+.es-severity-headline {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.es-severity-detail {
+  font-size: 11px;
+  color: #78350f;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.es-severity-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.es-severity-bar-track {
+  flex: 1;
+  height: 4px;
+  background: #fde68a;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.es-severity-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+
+.es-severity-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+/* Short sub-label in compact list */
+.es-compact-severity-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Most Affected Road banner ── */
+.es-most-affected-road {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.emar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.emar-icon { font-size: 13px; }
+
+.emar-road-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: #f1f5f9;
+  line-height: 1.2;
+  margin-bottom: 5px;
+}
+
+.emar-meta {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.emar-loading {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* ── Road names inside enforcement cards ── */
+.es-road-names {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 6px 0;
+}
+
+.es-rn-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin-bottom: 5px;
+}
+
+.es-rn-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0;
+  font-size: 12px;
+  color: #374151;
+}
+
+.es-rn-primary {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.es-rn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+.es-rn-primary .es-rn-dot {
+  background: #f59e0b;
+  width: 8px;
+  height: 8px;
+}
+
+.es-rn-name { flex: 1; }
+
+.es-rn-hw {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+/* ── Road name in compact list ── */
+.es-compact-road {
+  display: block;
+  font-size: 10px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}

@@ -1,21 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useApiHealth, usePredictions, API_BASE } from '../hooks/useApi';
-import { toDatetimeLocalValue } from '../utils/colorUtils';
+import { toDatetimeLocalValue, scoreKey } from '../utils/colorUtils';
 import HeatMap from '../components/HeatMap';
 import ControlsSidebar from '../components/ControlsSidebar';
 import EnforcementSidebar from '../components/EnforcementSidebar';
+import ForecastPanel from '../components/ForecastPanel';
+import AlertStrip from '../components/AlertStrip';
 import './PageLayout.css';
 
 const DISPLAY_TOP_N = 3200;
 
-const PredictionPage = ({ onPredictionsLoaded }) => {
+const PredictionPage = ({
+  onPredictionsLoaded,
+  searchQuery = '',
+  selectedStation = '',
+  onStationChange,
+  persistenceScores = {},
+}) => {
   const { health, status: apiStatus } = useApiHealth();
   const { predictions, loading, error, runPrediction } = usePredictions();
   const [selectedModel, setSelectedModel] = useState('lightgbm');
-  const [timestamp, setTimestamp] = useState('');
+  const [timestamp, setTimestamp]         = useState('');
+  const [showForecast, setShowForecast]   = useState(false);
+  const [forecastData, setForecastData]   = useState(null);
 
-  // Set default timestamp from panel_last_updated so scores are in-range
   useEffect(() => {
     if (health?.panel_last_updated) {
       const panelEnd = new Date(health.panel_last_updated.replace(' ', 'T'));
@@ -24,7 +33,6 @@ const PredictionPage = ({ onPredictionsLoaded }) => {
     }
   }, [health]);
 
-  // Expose predictions to parent for chatbot
   useEffect(() => {
     if (onPredictionsLoaded) onPredictionsLoaded(predictions);
   }, [predictions, onPredictionsLoaded]);
@@ -33,6 +41,34 @@ const PredictionPage = ({ onPredictionsLoaded }) => {
     if (!timestamp) return alert('Please pick a target date & hour first.');
     await runPrediction(timestamp, API_BASE);
   }, [timestamp, runPrediction]);
+
+  // Extract unique station options from predictions
+  const stationOptions = useMemo(() => {
+    const stations = [...new Set(predictions.map(p => p.police_station).filter(Boolean))];
+    return stations.sort();
+  }, [predictions]);
+
+  // Apply search + station filter
+  const filteredPredictions = useMemo(() => {
+    let result = predictions;
+    if (selectedStation) {
+      result = result.filter(p => p.police_station === selectedStation);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        p.location_key?.toLowerCase().includes(q) ||
+        p.police_station?.toLowerCase().includes(q) ||
+        p.area?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [predictions, selectedStation, searchQuery]);
+
+  const key  = scoreKey(selectedModel);
+  const top5 = useMemo(() => (
+    [...filteredPredictions].sort((a, b) => (b[key] || 0) - (a[key] || 0)).slice(0, 5)
+  ), [filteredPredictions, key]);
 
   const statusDot = apiStatus === 'ok'
     ? { color: '#22c55e', label: health ? `API ready · ${health.location_count?.toLocaleString()} locations` : 'API ready' }
@@ -55,7 +91,7 @@ const PredictionPage = ({ onPredictionsLoaded }) => {
         onRun={handleRun}
         loading={loading}
         error={error}
-        predictions={predictions}
+        predictions={filteredPredictions}
         scoreColor="indigo"
         legend={{
           lo: 'Low Risk',
@@ -63,28 +99,49 @@ const PredictionPage = ({ onPredictionsLoaded }) => {
           gradient: 'linear-gradient(to right, #22c55e, #f59e0b, #ef4444)',
         }}
         displayTopN={DISPLAY_TOP_N}
+        stationOptions={stationOptions}
+        selectedStation={selectedStation}
+        onStationChange={onStationChange}
+        showForecast={showForecast}
+        onForecastToggle={() => setShowForecast(v => !v)}
       />
 
       <div className="map-section">
-        <HeatMap
-          predictions={predictions}
-          selectedModel={selectedModel}
-          colorScheme="count"
-          displayTopN={DISPLAY_TOP_N}
-        />
-        {loading && (
-          <div className="map-loading-overlay">
-            <Loader2 className="spin-icon" size={32} />
-            <p>Fetching predictions…</p>
+        {forecastData && <AlertStrip forecastData={forecastData} />}
+        <div className="map-inner">
+          <HeatMap
+            predictions={filteredPredictions}
+            selectedModel={selectedModel}
+            colorScheme="count"
+            displayTopN={DISPLAY_TOP_N}
+          />
+          {loading && (
+            <div className="map-loading-overlay">
+              <Loader2 className="spin-icon" size={32} />
+              <p>Fetching predictions…</p>
+            </div>
+          )}
+        </div>
+        {showForecast && (
+          <div className="forecast-drawer">
+            <ForecastPanel
+              baseTimestamp={timestamp}
+              apiBase={API_BASE}
+              selectedModel={selectedModel}
+              topLocations={top5}
+              onForecastData={setForecastData}
+            />
           </div>
         )}
       </div>
 
       <EnforcementSidebar
-        predictions={predictions}
+        predictions={filteredPredictions}
         selectedModel={selectedModel}
         colorScheme="count"
         showSeverityFields={false}
+        persistenceScores={persistenceScores}
+        selectedStation={selectedStation}
       />
     </div>
   );

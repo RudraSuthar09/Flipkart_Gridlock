@@ -1,0 +1,7 @@
+# LightGBM model text files must stay LF (tree_sizes offsets are LF-based)
+prediction_api/models/*.txt text eol=lf
+
+# Common binary files
+*.parquet binary
+*.pkl binary
+*.npy binary
