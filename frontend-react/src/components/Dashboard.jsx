@@ -5,8 +5,8 @@ import SidePanel from './SidePanel';
 import { ChevronDown, Layers } from 'lucide-react';
 import './Dashboard.css';
 
-const API_BASE = 'http://127.0.0.1:8001/api/v1';
-const SEV_API = 'http://127.0.0.1:8001/api/v1/traffic-severity';
+const API_BASE = '/api/v1';
+const SEV_API = '/api/v1/traffic-severity';
 
 const Dashboard = () => {
   const [locations, setLocations] = useState([]);

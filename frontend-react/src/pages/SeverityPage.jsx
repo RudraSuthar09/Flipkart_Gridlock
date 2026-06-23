@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Map, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import { useApiHealth, usePredictions, SEV_API } from '../hooks/useApi';
 import { toDatetimeLocalValue } from '../utils/colorUtils';
 import HeatMap from '../components/HeatMap';
@@ -15,6 +15,7 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
   const { predictions, loading, error, runPrediction } = usePredictions();
   const [selectedModel, setSelectedModel] = useState('lightgbm');
   const [timestamp, setTimestamp] = useState('');
+  const [mobileSidebar, setMobileSidebar] = useState(null);
 
   useEffect(() => {
     if (sevHealth?.panel_last_updated) {
@@ -24,7 +25,6 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
     }
   }, [sevHealth]);
 
-  // Expose predictions to parent for chatbot
   useEffect(() => {
     if (onPredictionsLoaded) onPredictionsLoaded(predictions);
   }, [predictions, onPredictionsLoaded]);
@@ -34,6 +34,9 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
     await runPrediction(timestamp, SEV_API);
   }, [timestamp, runPrediction]);
 
+  const toggleMobile = (panel) =>
+    setMobileSidebar(prev => prev === panel ? null : panel);
+
   const statusDot = apiStatus === 'ok'
     ? { color: '#22c55e', label: sevHealth ? `API ready · ${sevHealth.location_count?.toLocaleString()} locations` : 'API ready' }
     : apiStatus === 'loading'
@@ -42,9 +45,13 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
 
   return (
     <div className="page-layout">
+      {mobileSidebar && (
+        <div className="mobile-sidebar-backdrop" onClick={() => setMobileSidebar(null)} />
+      )}
+
       <ControlsSidebar
         title="Severity Heatmap"
-        subtitle="Weighted risk forecast"
+        subtitle="How badly violations block traffic"
         icon="severity"
         statusColor={statusDot.color}
         statusLabel={statusDot.label}
@@ -64,6 +71,7 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
         }}
         displayTopN={DISPLAY_TOP_N}
         extraContent={sevHealth && <ConfidenceBanner health={sevHealth} />}
+        extraClassName={mobileSidebar === 'controls' ? 'mobile-open' : ''}
       />
 
       <div className="map-section">
@@ -73,6 +81,17 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
           colorScheme="severity"
           displayTopN={DISPLAY_TOP_N}
         />
+
+        {/* Plain-language mode explanation */}
+        <div className="map-mode-card">
+          <div className="map-mode-card-icon">⚠️</div>
+          <div className="map-mode-card-title">Traffic Impact View</div>
+          <p className="map-mode-card-desc">
+            Shows <strong>how badly</strong> parking blocks traffic — based on road type,
+            vehicle size &amp; lane count. Red = worst congestion impact.
+          </p>
+        </div>
+
         {loading && (
           <div className="map-loading-overlay">
             <Loader2 className="spin-icon" size={32} />
@@ -86,7 +105,33 @@ const SeverityPage = ({ onPredictionsLoaded }) => {
         selectedModel={selectedModel}
         colorScheme="severity"
         showSeverityFields={true}
+        extraClassName={mobileSidebar === 'enforcement' ? 'mobile-open' : ''}
       />
+
+      {/* Mobile bottom tab bar */}
+      <div className="mobile-tab-bar">
+        <button
+          className={`mobile-tab-btn sev ${mobileSidebar === 'controls' ? 'active' : ''}`}
+          onClick={() => toggleMobile('controls')}
+        >
+          <SlidersHorizontal size={20} />
+          Controls
+        </button>
+        <button
+          className={`mobile-tab-btn sev ${mobileSidebar === null ? 'active' : ''}`}
+          onClick={() => setMobileSidebar(null)}
+        >
+          <Map size={20} />
+          Map
+        </button>
+        <button
+          className={`mobile-tab-btn sev ${mobileSidebar === 'enforcement' ? 'active' : ''}`}
+          onClick={() => toggleMobile('enforcement')}
+        >
+          <AlertTriangle size={20} />
+          Alerts
+        </button>
+      </div>
     </div>
   );
 };

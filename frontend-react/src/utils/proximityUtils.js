@@ -1,0 +1,241 @@
+/**
+ * proximityUtils.js — Spatial proximity detection for OSM Points of Interest
+ *
+ * LOGIC OVERVIEW:
+ * ---------------
+ * We have ~6,333 hotspot locations and ~N POIs (metro stations, markets, etc.)
+ * For each hotspot, we want to know: "Is there a metro/market within X metres?"
+ *
+ * Naive approach: for each hotspot, loop through all POIs → O(hotspots × POIs)
+ * Our approach: bucket POIs into a lat/lon grid → O(hotspots × nearby_buckets)
+ * This makes lookups ~10x faster for large POI sets.
+ *
+ * HOW HAVERSINE WORKS:
+ * The Earth is a sphere. Two lat/lon points can't just be compared with
+ * Euclidean distance (that would assume a flat grid). Haversine calculates
+ * the shortest path along the sphere surface — the "as the crow flies" distance.
+ * Formula: d = 2R × arcsin(√(sin²(Δlat/2) + cos(lat1)×cos(lat2)×sin²(Δlon/2)))
+ * where R = 6371000 metres (Earth's radius).
+ *
+ * ZONE THRESHOLDS:
+ * - 500m for metro stations → anything within 500m of a metro is a "Metro Spillover" zone
+ * - 400m for markets        → commercial area spillover
+ * - 600m for event venues   → stadiums/hospitals have larger impact radius
+ */
+
+const EARTH_RADIUS_M = 6371000; // metres
+
+// Zone detection thresholds in metres
+const THRESHOLDS = {
+  metro:  500,   // Metro stations: 500m radius
+  market: 400,   // Markets / malls: 400m radius
+  event:  600,   // Stadiums / large venues: 600m radius
+};
+
+// Human-readable labels for the UI
+import { Train, Store, CalendarDays } from 'lucide-react';
+
+export const ZONE_LABELS = {
+  metro:  { label: 'Metro Zone',      icon: Train,        color: '#6366f1', short: 'METRO' },
+  market: { label: 'Commercial Zone', icon: Store,        color: '#f59e0b', short: 'MKTPL' },
+  event:  { label: 'Event Zone',      icon: CalendarDays, color: '#10b981', short: 'EVENT' },
+};
+// ─────────────────────────────────────────────────────────────────
+// Haversine distance — returns distance in metres between two lat/lon points
+// ─────────────────────────────────────────────────────────────────
+
+export function haversineM(lat1, lon1, lat2, lon2) {
+  // Convert degrees to radians (Haversine works in radians)
+  const toRad = (d) => (d * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  // Core haversine formula
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.asin(Math.sqrt(a));
+  return EARTH_RADIUS_M * c;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SpatialIndex — grid-based spatial index for fast proximity lookups
+// ─────────────────────────────────────────────────────────────────
+
+class SpatialIndex {
+  /**
+   * LOGIC: We divide the map into a grid of "cells". Each cell covers
+   * ~0.01 degrees lat/lon (roughly 1.1km × 0.9km in Bengaluru).
+   * We store each POI in its cell. When checking proximity to a hotspot,
+   * we only check POIs in the hotspot's cell and its 8 immediate neighbors
+   * (a 3×3 grid of cells). This avoids checking every POI globally.
+   */
+  constructor(cellSizeDeg = 0.01) {
+    this.cellSize = cellSizeDeg;
+    this.grid = new Map(); // "latCell,lonCell" → [poi, poi, ...]
+  }
+
+  _key(lat, lon) {
+    const latCell = Math.floor(lat / this.cellSize);
+    const lonCell = Math.floor(lon / this.cellSize);
+    return `${latCell},${lonCell}`;
+  }
+
+  insert(poi) {
+    const key = this._key(poi.lat, poi.lon);
+    if (!this.grid.has(key)) this.grid.set(key, []);
+    this.grid.get(key).push(poi);
+  }
+
+  /**
+   * Query all POIs within a square bounding box of ±radiusDeg degrees.
+   * We check the 3×3 block of cells surrounding the query point.
+   * This is approximate but fast — the exact Haversine check happens after.
+   */
+  nearby(lat, lon, radiusDeg) {
+    const results = [];
+    const latCell = Math.floor(lat / this.cellSize);
+    const lonCell = Math.floor(lon / this.cellSize);
+    const spread = Math.ceil(radiusDeg / this.cellSize) + 1;
+
+    for (let dl = -spread; dl <= spread; dl++) {
+      for (let dc = -spread; dc <= spread; dc++) {
+        const key = `${latCell + dl},${lonCell + dc}`;
+        const pois = this.grid.get(key);
+        if (pois) results.push(...pois);
+      }
+    }
+    return results;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Module state — loaded once, reused for all lookups
+// ─────────────────────────────────────────────────────────────────
+
+let _poisByType = null;      // { metro: SpatialIndex, market: SpatialIndex, event: SpatialIndex }
+let _rawPois = null;         // Full array for map rendering
+let _loadPromise = null;     // Single in-flight fetch
+
+// ─────────────────────────────────────────────────────────────────
+// loadPOIs — fetch bengaluru_pois.json and build spatial indexes
+// ─────────────────────────────────────────────────────────────────
+
+export async function loadPOIs() {
+  /**
+   * LOGIC: We fetch the static JSON file generated by our Python script.
+   * The file lives in /public/bengaluru_pois.json — Vite serves it directly
+   * at the root URL. We build a SpatialIndex per POI type (metro, market, event)
+   * so lookups are fast. We cache the result — subsequent calls return instantly.
+   */
+  if (_poisByType) return _poisByType;  // Already loaded
+
+  // Deduplicate concurrent calls — only one fetch, not N
+  if (!_loadPromise) {
+    _loadPromise = fetch('/bengaluru_pois.json')
+      .then(r => {
+        if (!r.ok) throw new Error(`Failed to load POIs: ${r.status}`);
+        return r.json();
+      })
+      .then(pois => {
+        _rawPois = pois;
+        // Build one spatial index per type
+        _poisByType = { metro: new SpatialIndex(), market: new SpatialIndex(), event: new SpatialIndex() };
+        for (const poi of pois) {
+          if (_poisByType[poi.type]) {
+            _poisByType[poi.type].insert(poi);
+          }
+        }
+        console.log(`[OSM] Loaded ${pois.length} POIs:`,
+          Object.fromEntries(
+            Object.keys(_poisByType).map(t => [t, pois.filter(p => p.type === t).length])
+          )
+        );
+        return _poisByType;
+      })
+      .catch(err => {
+        console.warn('[OSM] POI file not found or failed to load. Zone badges will be disabled.', err);
+        _poisByType = { metro: new SpatialIndex(), market: new SpatialIndex(), event: new SpatialIndex() };
+        return _poisByType;
+      });
+  }
+
+  return _loadPromise;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// getZone — classify a single hotspot location by proximity to POIs
+// ─────────────────────────────────────────────────────────────────
+
+export function getZone(lat, lon) {
+  /**
+   * LOGIC: Check each POI type in priority order (metro > market > event).
+   * For each type, we query the spatial index to get candidate POIs in
+   * nearby grid cells, then do the exact Haversine check on each candidate.
+   * Return the closest zone within threshold, or null if none found.
+   *
+   * Priority order matters: a location near BOTH a metro station and a market
+   * should be classified as "Metro Zone" (higher enforcement priority).
+   */
+  if (!_poisByType) return null;
+
+  const priority = ['metro', 'market', 'event'];
+
+  for (const type of priority) {
+    const threshold = THRESHOLDS[type];
+    // Convert metres threshold to rough degrees for bounding box query
+    // 1 degree lat ≈ 111km, so threshold metres ÷ 111000 gives degrees
+    const threshDeg = threshold / 111000;
+
+    const candidates = _poisByType[type].nearby(lat, lon, threshDeg);
+
+    let closest = null;
+    let closestDist = Infinity;
+
+    for (const poi of candidates) {
+      const dist = haversineM(lat, lon, poi.lat, poi.lon);
+      if (dist <= threshold && dist < closestDist) {
+        closest = poi;
+        closestDist = dist;
+      }
+    }
+
+    if (closest) {
+      return {
+        type,
+        poi: closest,
+        distanceM: Math.round(closestDist),
+        ...ZONE_LABELS[type],
+      };
+    }
+  }
+
+  return null; // No zone nearby
+}
+
+// ─────────────────────────────────────────────────────────────────
+// getRawPOIs — returns all POIs for rendering on the map
+// ─────────────────────────────────────────────────────────────────
+
+export function getRawPOIs() {
+  return _rawPois || [];
+}
+
+/**
+ * enrichPredictionsWithZones — add zone info to every prediction object.
+ *
+ * LOGIC: We call this once after predictions load. It mutates each prediction
+ * in-place by adding a `zone` field. Subsequent map/sidebar renders read
+ * pred.zone directly — no per-render proximity checks needed.
+ */
+export function enrichPredictionsWithZones(predictions) {
+  if (!_poisByType || !predictions) return predictions;
+  for (const pred of predictions) {
+    if (pred.zone === undefined) {
+      pred.zone = getZone(pred.latitude, pred.longitude);
+    }
+  }
+  return predictions;
+}

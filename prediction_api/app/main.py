@@ -43,6 +43,8 @@ from app.config import (
     LGBM_SEVERITY_MODEL,
     PCU_WEIGHTS,
     VEHICLE_TYPE_MAPPING,
+    ROAD_CLASS_LOOKUP,
+    DEFAULT_ROAD_WEIGHT,
 )
 from app.routers.predictions import router as predictions_router
 from app.routers.traffic_severity import router as severity_router
@@ -177,6 +179,17 @@ async def lifespan(app: FastAPI):
     # ══════════════════════════════════════════════════════════
     # Part 1 — Count-based models
     # ══════════════════════════════════════════════════════════
+
+    # ── Load OSM road weights once — shared by both Part 1 and Part 2 ──
+    road_weights: dict = {}
+    if ROAD_CLASS_LOOKUP.exists():
+        with open(ROAD_CLASS_LOOKUP, encoding="utf-8") as f:
+            _lookup = json.load(f)
+        road_weights = {k: v["road_weight"] for k, v in _lookup.items()}
+        log.info("OSM road weights loaded: %d locations", len(road_weights))
+    else:
+        log.info("road_class_lookup.json not found — road_weight_osm defaults to %.2f", DEFAULT_ROAD_WEIGHT)
+    app.state.road_weights = road_weights
 
     log.info("[Part 1] Loading count panel from %s ...", PARQUET_PATH)
     panel = load_panel(PARQUET_PATH)

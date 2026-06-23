@@ -1,12 +1,12 @@
 import React from 'react';
-import { Play, Loader2 } from 'lucide-react';
+import { Play, Loader2, AlertTriangle, CalendarClock, Cpu } from 'lucide-react';
 import { scoreKey, riskColor, sevRiskColor } from '../utils/colorUtils';
 import './ControlsSidebar.css';
 
 const MODEL_OPTIONS = [
   { id: 'lightgbm', label: 'LightGBM' },
   { id: 'baseline', label: 'Baseline' },
-  { id: 'naive',    label: 'Naive' },
+  { id: 'naive', label: 'Naive' },
 ];
 
 const ControlsSidebar = ({
@@ -14,7 +14,7 @@ const ControlsSidebar = ({
   timestamp, onTimestampChange,
   selectedModel, onModelChange,
   onRun, loading, error,
-  predictions, scoreColor, legend, extraContent, displayTopN,
+  predictions, scoreColor, legend, extraContent, displayTopN, extraClassName,
 }) => {
   const key = scoreKey(selectedModel);
   const colorFn = scoreColor === 'amber' ? sevRiskColor : riskColor;
@@ -28,17 +28,17 @@ const ControlsSidebar = ({
     .slice(0, 20);
 
   return (
-    <aside className="controls-sidebar">
+    <aside className={`controls-sidebar${extraClassName ? ` ${extraClassName}` : ''}`}>
       {/* Brand */}
       <div className="cs-brand">
         <div className={`cs-brand-icon ${icon}`}>
           {icon === 'severity' ? (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
           ) : (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           )}
         </div>
@@ -60,7 +60,7 @@ const ControlsSidebar = ({
       {/* Time Picker */}
       <section className="cs-section">
         <div className="cs-section-header">
-          <span className="cs-section-icon">🕐</span>
+          <CalendarClock size={18} className="cs-section-icon" />
           <h3>Target Time</h3>
         </div>
         <label className="cs-label">
@@ -77,7 +77,7 @@ const ControlsSidebar = ({
       {/* Model Toggle */}
       <section className="cs-section">
         <div className="cs-section-header">
-          <span className="cs-section-icon">🤖</span>
+          <Cpu size={18} className="cs-section-icon" />
           <h3>Model</h3>
         </div>
         <div className="cs-model-row">
@@ -114,38 +114,43 @@ const ControlsSidebar = ({
       {/* Top 20 Hotspots */}
       <section className="cs-section cs-top-section">
         <div className="cs-section-header">
-          <span className="cs-section-icon">🚨</span>
+          <span className="cs-section-icon"><AlertTriangle size={18} /></span>
           <h3>Top 20 Hotspots</h3>
+          {top20.length > 0 && (
+            <span className="cs-top-count">{top20.length} locations</span>
+          )}
         </div>
         {top20.length === 0 ? (
           <p className="cs-empty">Run a prediction to see hotspots</p>
         ) : (
-          <ul className="cs-top-list">
-            {top20.map((loc, i) => {
-              const score = loc[key] || 0;
-              const pct = effectiveMax > 0 ? ((score / effectiveMax) * 100).toFixed(0) : 0;
-              const color = colorFn(score / effectiveMax);
-              return (
-                <li key={loc.location_key} className="cs-top-item">
-                  <div className="cs-top-rank" style={{ background: color }}>{i + 1}</div>
-                  <div className="cs-top-info">
-                    <div className="cs-top-name">
-                      {loc.location_key.replace(/^[A-Z0-9]+ - /, '')}
+          <div className="cs-top-scroll">
+            <ul className="cs-top-list">
+              {top20.map((loc, i) => {
+                const score = loc[key] || 0;
+                const pct = effectiveMax > 0 ? ((score / effectiveMax) * 100).toFixed(0) : 0;
+                const color = colorFn(score / effectiveMax);
+                return (
+                  <li key={loc.location_key} className="cs-top-item">
+                    <div className="cs-top-rank" style={{ background: color }}>{i + 1}</div>
+                    <div className="cs-top-info">
+                      <div className="cs-top-name">
+                        {loc.location_key.replace(/^[A-Z0-9]+ - /, '')}
+                      </div>
+                      <div className="cs-top-meta">
+                        {loc.area || ''}{loc.area && loc.police_station ? ' · ' : ''}{loc.police_station || ''}
+                      </div>
                     </div>
-                    <div className="cs-top-meta">
-                      {loc.area || ''}{loc.area && loc.police_station ? ' · ' : ''}{loc.police_station || ''}
+                    <div className="cs-top-score-wrap">
+                      <div className="cs-top-score">{score.toFixed(2)}</div>
+                      <div className="cs-top-bar-track">
+                        <div className="cs-top-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                      </div>
                     </div>
-                  </div>
-                  <div className="cs-top-score-wrap">
-                    <div className="cs-top-score">{score.toFixed(2)}</div>
-                    <div className="cs-top-bar-track">
-                      <div className="cs-top-bar-fill" style={{ width: `${pct}%`, background: color }} />
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </section>
 

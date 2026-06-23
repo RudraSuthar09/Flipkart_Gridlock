@@ -5,7 +5,7 @@ import './EnforcementSidebar.css';
 
 const SEVERITY_TAGS = ['CRITICAL', 'ELEVATED', 'MONITORING'];
 
-const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSeverityFields }) => {
+const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSeverityFields, extraClassName }) => {
   const key = scoreKey(selectedModel);
   const colorFn = colorScheme === 'severity' ? sevRiskColor : riskColor;
 
@@ -25,7 +25,7 @@ const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSever
   const primaryColor = colorScheme === 'severity' ? '#f59e0b' : '#6366f1';
 
   return (
-    <aside className="enforcement-sidebar">
+    <aside className={`enforcement-sidebar${extraClassName ? ` ${extraClassName}` : ''}`}>
       <div className="es-header">
         <h2>Enforcement</h2>
         <button className="icon-btn"><Filter size={18} /></button>
@@ -95,6 +95,21 @@ const EnforcementSidebar = ({ predictions, selectedModel, colorScheme, showSever
                         <span className="es-sev-val es-sev-trunc">{pred.dominant_violation}</span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* OSM Zone Badge — shows metro/market/event proximity */}
+                {/* LOGIC: If this hotspot's .zone field (set by enrichPredictionsWithZones)
+                    is non-null, we render a coloured pill showing zone type, the specific
+                    POI name from OSM, and the distance. This tells the dispatcher exactly
+                    WHY this location is high-risk beyond just the score. */}
+                {pred.zone && (
+                  <div className="es-zone-badge" style={{ borderColor: pred.zone.color, color: pred.zone.color, background: `${pred.zone.color}15` }}>
+                    <span className="es-zone-tag" style={{ background: pred.zone.color, color: '#fff' }}>{pred.zone.short}</span>
+                    <div className="es-zone-info">
+                      <span className="es-zone-label">{pred.zone.label}</span>
+                      <span className="es-zone-poi">{pred.zone.poi.name} &middot; {pred.zone.distanceM}m</span>
+                    </div>
                   </div>
                 )}
 

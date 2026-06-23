@@ -42,6 +42,7 @@ from app.config import (
     TEST_DAYS, VAL_DAYS, MIN_HISTORY_DAYS,
     ALL_LGBM_FEATURES, FEATURE_NAMES,
     LGBM_SEVERITY_MODEL, BASELINE_SEVERITY_JSON,
+    ROAD_CLASS_LOOKUP, DEFAULT_ROAD_WEIGHT,
 )
 from app.services.data_pipeline import load_panel
 from app.services.feature_engineering import (
@@ -208,10 +209,35 @@ def main() -> int:
     pivot_data = build_pivot_matrix(panel)
     log.info("  Pivot ready in %.1fs", time.time() - t0)
 
+    # ── 2b. Load OSM road weights (optional) ─────────────────────
+    # road_weight_osm is a static per-location feature (0.15=motorway → 1.0=footway).
+    # If the lookup file doesn't exist, all examples get DEFAULT_ROAD_WEIGHT and
+    # the feature still trains — it just won't vary across locations.
+    road_weights: dict[str, float] = {}
+    if ROAD_CLASS_LOOKUP.exists():
+        with open(ROAD_CLASS_LOOKUP, encoding="utf-8") as f:
+            import json as _json
+            lookup = _json.load(f)
+        road_weights = {k: v["road_weight"] for k, v in lookup.items()}
+        matched = sum(1 for k in pivot_data.loc_to_pos if k in road_weights)
+        log.info(
+            "  OSM road weights loaded: %d total, %d / %d pivot locs matched (%.1f%%)",
+            len(road_weights), matched, len(pivot_data.loc_to_pos),
+            100 * matched / max(len(pivot_data.loc_to_pos), 1),
+        )
+    else:
+        log.warning(
+            "  road_class_lookup.json not found — road_weight_osm will be %.2f for all locs",
+            DEFAULT_ROAD_WEIGHT,
+        )
+
     # ── 3. Generate training examples ────────────────────────────
     log.info("Generating training examples (MIN_HISTORY_DAYS=%d)...", MIN_HISTORY_DAYS)
     t0 = time.time()
-    examples = generate_training_examples(panel, pivot_data, MIN_HISTORY_DAYS)
+    examples = generate_training_examples(
+        panel, pivot_data, MIN_HISTORY_DAYS,
+        road_weights=road_weights if road_weights else None,
+    )
     log.info("  %d examples in %.1fs", len(examples), time.time() - t0)
 
     del panel  # free memory
@@ -240,12 +266,26 @@ def main() -> int:
         X_val   = val_df[ALL_LGBM_FEATURES].values
         y_val   = val_df["violation_count"].values.astype(np.float32)
 
+        # For severity target, upweight non-zero rows so the model doesn't
+        # ignore the rare severity events drowned out by 99.6% zeros.
+        sample_weights = None
+        if is_severity:
+            from app.config import SEVERITY_NONZERO_WEIGHT
+            w = np.ones(len(y_train), dtype=np.float32)
+            w[y_train > 0] = SEVERITY_NONZERO_WEIGHT
+            sample_weights = w
+            log.info(
+                "  Severity sample weights: %d non-zero (%.1f×) + %d zero (1×)",
+                (y_train > 0).sum(), SEVERITY_NONZERO_WEIGHT, (y_train == 0).sum(),
+            )
+
         t0 = time.time()
         lgbm_model = LGBMPredictor(lgbm_params=lgbm_params)
         lgbm_model.train(
             X_train, y_train,
             X_val,   y_val,
             feature_names=ALL_LGBM_FEATURES,
+            sample_weight=sample_weights,
         )
         log.info("  LightGBM trained in %.1fs", time.time() - t0)
 
