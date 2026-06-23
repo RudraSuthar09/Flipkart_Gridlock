@@ -2,9 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { riskColor, sevRiskColor, scoreKey } from '../utils/colorUtils';
+import { getSeverityNarrative } from '../utils/severityUtils';
+import { highwayLabel } from '../utils/roadNameUtils';
 import './HeatMap.css';
 
 const BENGALURU_CENTER = [12.9716, 77.5946];
+
+
 const HOTSPOT_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#f97316' };
 // Voyager tiles: colorful, detailed, makes vibrant markers pop without going full-dark
 const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -16,7 +20,7 @@ const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 
 
-const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 }) => {
+const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500, roadNames = {} }) => {
   const mapRef         = useRef(null);
   const leafletMap     = useRef(null);
   const markerLayer    = useRef(null);
@@ -129,11 +133,25 @@ const HeatMap = ({ predictions, selectedModel, colorScheme, displayTopN = 500 })
       }
 
       marker.bindPopup(
-        buildPopup(loc, rank, selectedModel, score, logRatio, colorFn, colorScheme),
-        { maxWidth: 350 }
+        buildPopup(loc, rank, selectedModel, score, logRatio, colorFn, colorScheme, roadNames),
+        { maxWidth: 320 }
       );
       marker._locData = loc;
       marker._rank    = rank;
+
+      // Permanent road name label for top-5 severity hotspots
+      if (colorScheme === 'severity' && rank <= 5) {
+        const locRoads = roadNames[loc.location_key];
+        if (locRoads && locRoads.length > 0) {
+          marker.bindTooltip(locRoads[0].name, {
+            permanent: true,
+            direction: 'top',
+            offset: [0, rank <= 3 ? -14 : -10],
+            className: `road-name-label${rank === 1 ? ' road-label-rank1' : ''}`,
+          });
+        }
+      }
+
       layer.addLayer(marker);
     });
 
@@ -238,7 +256,7 @@ CONTROL: [max 9 words, traffic management — no fines/clamps]`;
 
     m.on('popupopen', onPopupOpen);
     return () => m.off('popupopen', onPopupOpen);
-  }, [predictions, selectedModel, colorScheme]);
+  }, [predictions, selectedModel, colorScheme, roadNames]);
 
   return (
     <div className="heatmap-wrapper">
@@ -252,7 +270,7 @@ function escH(v) {
   return String(v ?? '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
+function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme, roadNames = {}) {
   const safeId    = loc.location_key.replace(/[^a-z0-9]/gi, '_');
   const visualPct = (logRatio * 100).toFixed(1);
   const isTop5 = rank <= 5;
@@ -281,23 +299,57 @@ function buildPopup(loc, rank, model, score, logRatio, colorFn, colorScheme) {
 
   let sevFields = '';
   if (isSev) {
-    const VEH = { two_wheeler:'two-wheeler', auto_rickshaw:'auto-rickshaw', car:'car',
-                  lcv:'light commercial vehicle', bus:'bus', heavy_truck:'heavy truck', tractor:'tractor' };
+    const { headline, detail, blockagePct } = getSeverityNarrative(loc);
+
+    const VEH = {
+      two_wheeler:'two-wheelers', auto_rickshaw:'auto-rickshaws', car:'cars',
+      lcv:'light commercial vehicles', bus:'buses', heavy_truck:'heavy trucks', tractor:'tractors',
+    };
     const lane     = loc.lane_count != null ? loc.lane_count.toFixed(1) : '—';
     const vehLabel = VEH[loc.dominant_vehicle_cat] || (loc.dominant_vehicle_cat || '—');
     const vioType  = loc.dominant_violation || '—';
-    const laneNum  = loc.lane_count != null ? Math.round(loc.lane_count) : null;
-    const roadDesc = laneNum != null ? (laneNum <= 1 ? 'single-lane' : `${laneNum}-lane`) : '';
+
+    const barColor = blockagePct >= 80 ? '#ef4444' : blockagePct >= 50 ? '#f59e0b' : '#22c55e';
+
+    const locRoads = roadNames[loc.location_key] || [];
+    const roadRowsHtml = locRoads.length > 0
+      ? `<div class="popup-road-names">
+           <div class="prn-label">Affected Roads</div>
+           ${locRoads.map((r, i) => `
+             <div class="prn-row${i === 0 ? ' prn-primary' : ''}">
+               <span class="prn-dot"></span>
+               <span class="prn-name">${escH(r.name)}</span>
+               <span class="prn-hw">${highwayLabel(r.highway)}</span>
+             </div>`).join('')}
+         </div>`
+      : '';
 
     sevFields = `
-      <div class="sev-explainer">
-        <span class="sev-explainer-icon">⚠</span>
-        <em>Mostly ${escH(vehLabel)} violations on ${escH(roadDesc)} road — real traffic impact</em>
+      <div class="sev-narrative-box">
+        <div class="sev-narrative-headline">${escH(headline)}</div>
+        <div class="sev-narrative-detail">${escH(detail)}</div>
+        <div class="sev-blockage-bar-wrap">
+          <div class="sev-blockage-bar-track">
+            <div class="sev-blockage-bar-fill"
+                 style="width:${blockagePct}%;background:${barColor}"></div>
+          </div>
+          <span class="sev-blockage-label">${blockagePct}% carriageway blocked</span>
+        </div>
       </div>
+      ${roadRowsHtml}
       <div class="sev-details-grid">
-        <div class="sev-detail-item"><span class="sev-detail-label">Lane count</span><span class="sev-detail-val">${escH(lane)}</span></div>
-        <div class="sev-detail-item"><span class="sev-detail-label">Vehicle type</span><span class="sev-detail-val">${escH(vehLabel)}</span></div>
-        <div class="sev-detail-item sev-detail-wide"><span class="sev-detail-label">Common violation</span><span class="sev-detail-val">${escH(vioType)}</span></div>
+        <div class="sev-detail-item">
+          <span class="sev-detail-label">Lane count</span>
+          <span class="sev-detail-val">${escH(lane)}</span>
+        </div>
+        <div class="sev-detail-item">
+          <span class="sev-detail-label">Vehicle type</span>
+          <span class="sev-detail-val">${escH(vehLabel)}</span>
+        </div>
+        <div class="sev-detail-item sev-detail-wide">
+          <span class="sev-detail-label">Common violation</span>
+          <span class="sev-detail-val">${escH(vioType)}</span>
+        </div>
       </div>`;
   } else {
     sevFields = `

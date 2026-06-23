@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { scoreKey, riskColor, sevRiskColor, VEH_SHORT } from '../utils/colorUtils';
+import { getSeverityNarrative, getSeverityShortLabel } from '../utils/severityUtils';
+import { highwayLabel } from '../utils/roadNameUtils';
 import './EnforcementSidebar.css';
 
 const SEVERITY_TAGS = ['CRITICAL', 'ELEVATED', 'MONITORING'];
@@ -9,6 +11,7 @@ const SEVERITY_TAGS = ['CRITICAL', 'ELEVATED', 'MONITORING'];
 export default function EnforcementSidebar({
   predictions, selectedModel, colorScheme, showSeverityFields,
   persistenceScores = {}, selectedStation = '',
+  roadNames = {}, mostAffectedRoad = null, roadNamesLoading = false,
 }) {
   const key     = scoreKey(selectedModel);
   const colorFn = colorScheme === 'severity' ? sevRiskColor : riskColor;
@@ -55,6 +58,27 @@ export default function EnforcementSidebar({
       </div>
 
       <div className="es-body">
+        {showSeverityFields && (mostAffectedRoad || roadNamesLoading) && (
+          <div className="es-most-affected-road">
+            <div className="emar-label">
+              <span className="emar-icon">🛣</span>
+              Most Affected Road
+            </div>
+            {roadNamesLoading ? (
+              <div className="emar-loading">Identifying roads…</div>
+            ) : (
+              <>
+                <div className="emar-road-name">{mostAffectedRoad.name}</div>
+                <div className="emar-meta">
+                  {highwayLabel(mostAffectedRoad.highway)}
+                  {' · '}
+                  Affects {mostAffectedRoad.hotspotCount} of top-5 hotspots
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {top10.length === 0 ? (
           <div className="es-empty">
             <p>Run a prediction to see enforcement alerts</p>
@@ -100,6 +124,26 @@ export default function EnforcementSidebar({
                     </div>
                   </div>
 
+                  {showSeverityFields && (() => {
+                    const { headline, detail, blockagePct } = getSeverityNarrative(pred);
+                    const barColor = blockagePct >= 80 ? '#ef4444' : blockagePct >= 50 ? '#f59e0b' : '#22c55e';
+                    return (
+                      <div className="es-severity-reason">
+                        <div className="es-severity-headline">{headline}</div>
+                        <div className="es-severity-detail">{detail}</div>
+                        <div className="es-severity-bar-wrap">
+                          <div className="es-severity-bar-track">
+                            <div
+                              className="es-severity-bar-fill"
+                              style={{ width: `${blockagePct}%`, background: barColor }}
+                            />
+                          </div>
+                          <span className="es-severity-bar-label">{blockagePct}% carriageway</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {showSeverityFields && (
                     <div className="es-sev-row">
                       {pred.dominant_vehicle_cat && (
@@ -126,6 +170,23 @@ export default function EnforcementSidebar({
                   <div className="es-risk-bar">
                     <div className="es-risk-fill" style={{ width: `${pct}%`, background: color }} />
                   </div>
+
+                  {showSeverityFields && (() => {
+                    const locRoads = roadNames[pred.location_key] || [];
+                    if (!locRoads.length) return null;
+                    return (
+                      <div className="es-road-names">
+                        <div className="es-rn-header">Affected Roads</div>
+                        {locRoads.map((r, i) => (
+                          <div key={r.name} className={`es-rn-row${i === 0 ? ' es-rn-primary' : ''}`}>
+                            <span className="es-rn-dot" />
+                            <span className="es-rn-name">{r.name}</span>
+                            <span className="es-rn-hw">{highwayLabel(r.highway)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {lat && lon && (
                     <button
@@ -156,6 +217,17 @@ export default function EnforcementSidebar({
                           <span className="es-compact-name">
                             {pred.location_key.replace(/^[A-Z0-9]+ - /, '')}
                           </span>
+                          {showSeverityFields && (() => {
+                            const roads = roadNames[pred.location_key];
+                            return roads?.[0]
+                              ? <span className="es-compact-road">{roads[0].name}</span>
+                              : null;
+                          })()}
+                          {showSeverityFields && pred.dominant_vehicle_cat && (
+                            <span className="es-compact-severity-sub">
+                              {getSeverityShortLabel(pred)}
+                            </span>
+                          )}
                           <div className="es-compact-bar-track">
                             <div className="es-compact-bar-fill" style={{ width: `${pct}%`, background: color }} />
                           </div>

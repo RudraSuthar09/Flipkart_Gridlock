@@ -188,3 +188,45 @@
 .rp-pct-badge.high { background: #fee2e2; color: #dc2626; }
 .rp-pct-badge.mid  { background: #fef3c7; color: #d97706; }
 .rp-pct-badge.low  { background: #dcfce7; color: #16a34a; }
+
+/* Table scroll wrapper */
+.rp-table-scroll {
+  overflow-x: auto;
+}
+
+/* Table card sub-header */
+.rp-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rp-table-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.rp-table-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Summary card sub-label */
+.rp-sum-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Highlighted summary value */
+.rp-sum-highlight {
+  color: #6366f1;
+}
+
+/* Fixed rank column width */
+.rp-th-fixed {
+  width: 48px;
+}

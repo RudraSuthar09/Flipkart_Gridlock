@@ -13,11 +13,14 @@ const fmtInr = (n) => {
   return `₹${Math.round(n).toLocaleString('en-IN')}`;
 };
 
+// Module-level cache — survives page navigation, cleared on hard refresh
+const _cache = { pisData: null, stationStats: null };
+
 export default function PISPage() {
-  const [pisData,       setPisData]       = useState([]);
-  const [stationStats,  setStationStats]  = useState([]);
-  const [pisLoading,    setPisLoading]    = useState(true);
-  const [statLoading,   setStatLoading]   = useState(true);
+  const [pisData,       setPisData]       = useState(_cache.pisData || []);
+  const [stationStats,  setStationStats]  = useState(_cache.stationStats || []);
+  const [pisLoading,    setPisLoading]    = useState(!_cache.pisData);
+  const [statLoading,   setStatLoading]   = useState(!_cache.stationStats);
   const [pisError,      setPisError]      = useState(null);
   const [activeTab,       setActiveTab]       = useState('pis');
   const [selectedJunction, setSelectedJunction] = useState(null);
@@ -26,15 +29,18 @@ export default function PISPage() {
   const [filterAction,  setFilterAction]  = useState('');
 
   useEffect(() => {
-    axios.get('/api/v1/pis-scores', { timeout: 20000 })
-      .then(r => setPisData((r.data || []).filter(row => !row.location_key?.startsWith('grid_'))))
-      .catch(e => setPisError(e.message))
-      .finally(() => setPisLoading(false));
-
-    axios.get('/api/v1/station-stats', { timeout: 20000 })
-      .then(r => setStationStats(r.data || []))
-      .catch(() => {})
-      .finally(() => setStatLoading(false));
+    if (!_cache.pisData) {
+      axios.get('/api/v1/pis-scores', { timeout: 20000 })
+        .then(r => { _cache.pisData = (r.data || []).filter(row => !row.location_key?.startsWith('grid_')); setPisData(_cache.pisData); })
+        .catch(e => setPisError(e.message))
+        .finally(() => setPisLoading(false));
+    }
+    if (!_cache.stationStats) {
+      axios.get('/api/v1/station-stats', { timeout: 20000 })
+        .then(r => { _cache.stationStats = r.data || []; setStationStats(_cache.stationStats); })
+        .catch(() => {})
+        .finally(() => setStatLoading(false));
+    }
   }, []);
 
   const handleSort = useCallback((k) => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useApiHealth, usePredictions, SEV_API } from '../hooks/useApi';
 import { toDatetimeLocalValue, scoreKey } from '../utils/colorUtils';
+import { fetchAllRoadNames, getMostAffectedRoad } from '../utils/roadNameUtils';
 import HeatMap from '../components/HeatMap';
 import ControlsSidebar from '../components/ControlsSidebar';
 import EnforcementSidebar from '../components/EnforcementSidebar';
@@ -25,6 +26,9 @@ const SeverityPage = ({
   const [timestamp, setTimestamp]         = useState('');
   const [showForecast, setShowForecast]   = useState(false);
   const [forecastData, setForecastData]   = useState(null);
+  const [roadNames,        setRoadNames]        = useState({});
+  const [mostAffectedRoad, setMostAffectedRoad] = useState(null);
+  const [roadNamesLoading, setRoadNamesLoading] = useState(false);
 
   useEffect(() => {
     if (sevHealth?.panel_last_updated) {
@@ -63,6 +67,27 @@ const SeverityPage = ({
     }
     return result;
   }, [predictions, selectedStation, searchQuery]);
+
+  // Fetch road names for top-5 severity hotspots in parallel (tags-only, fast)
+  useEffect(() => {
+    if (filteredPredictions.length === 0) {
+      setRoadNames({});
+      setMostAffectedRoad(null);
+      return;
+    }
+    const k = scoreKey(selectedModel);
+    const top5fetch = [...filteredPredictions]
+      .sort((a, b) => (b[k] || 0) - (a[k] || 0))
+      .slice(0, 5)
+      .filter(p => p.latitude && p.longitude);
+
+    setRoadNamesLoading(true);
+    fetchAllRoadNames(top5fetch).then(nameMap => {
+      setRoadNames(nameMap);
+      setMostAffectedRoad(getMostAffectedRoad(top5fetch, nameMap));
+      setRoadNamesLoading(false);
+    });
+  }, [filteredPredictions, selectedModel]);
 
   const key  = scoreKey(selectedModel);
   const top5 = useMemo(() => (
@@ -114,6 +139,7 @@ const SeverityPage = ({
             selectedModel={selectedModel}
             colorScheme="severity"
             displayTopN={DISPLAY_TOP_N}
+            roadNames={roadNames}
           />
           {loading && (
             <div className="map-loading-overlay">
@@ -142,6 +168,9 @@ const SeverityPage = ({
         showSeverityFields={true}
         persistenceScores={persistenceScores}
         selectedStation={selectedStation}
+        roadNames={roadNames}
+        mostAffectedRoad={mostAffectedRoad}
+        roadNamesLoading={roadNamesLoading}
       />
     </div>
   );

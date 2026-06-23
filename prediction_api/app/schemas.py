@@ -5,7 +5,7 @@ the OpenAPI docs at /docs.
 """
 from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Dict, List, Optional
 
 
 # ── Location (for /locations endpoint) ────────────────────────────────────
@@ -157,6 +157,10 @@ class StationStatsRecord(BaseModel):
     violations_per_device: float
     median_validation_lag_hours: Optional[float] = None
     flag_high_rejection: bool
+    night_violations: int = 0
+    unique_locations: int = 0
+    peak_hour: Optional[int] = None
+    top_location: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -184,3 +188,8 @@ class SeverityHealthResponse(BaseModel):
     lane_match_coverage:      float = Field(
         description="Fraction of locations where lane_count is a real OSM/data value (not None/default)"
     )
+
+
+class BatchHourlyRequest(BaseModel):
+    """Body for POST /api/v1/hourly-profiles/batch."""
+    location_keys: List[str]

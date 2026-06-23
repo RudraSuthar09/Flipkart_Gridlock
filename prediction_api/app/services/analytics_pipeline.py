@@ -272,7 +272,7 @@ def build_dark_fleet_and_station_stats(
 
     # ── Dark fleet columns ───────────────────────────────────────────
     df_cols = [c for c in ["vehicle_number", "location_key", "police_station"] if c in header]
-    stat_cols = [c for c in ["police_station", "validation_status", "device_id", "created_datetime", "validation_timestamp"] if c in header]
+    stat_cols = [c for c in ["police_station", "validation_status", "device_id", "created_datetime", "validation_timestamp", "junction_name"] if c in header]
     all_cols = list(dict.fromkeys(df_cols + stat_cols))  # deduplicated
 
     if not all_cols:
@@ -334,22 +334,25 @@ def build_dark_fleet_and_station_stats(
         for station, sgrp in df.groupby("police_station"):
             total_v = len(sgrp)
 
+            # ── Rejection rate ────────────────────────────────────────────
             rej_rate = 0.0
             if "validation_status" in sgrp.columns:
                 vs = sgrp["validation_status"].dropna()
                 if len(vs):
                     rej_rate = (vs.astype(str).str.upper() == "REJECTED").sum() / len(vs)
 
+            # ── Violations per device ─────────────────────────────────────
             vio_per_device = 0.0
             if "device_id" in sgrp.columns:
                 n_dev = sgrp["device_id"].nunique()
                 vio_per_device = total_v / max(n_dev, 1)
 
+            # ── Median validation lag ─────────────────────────────────────
             lag_hours: Optional[float] = None
             if "created_datetime" in sgrp.columns and "validation_timestamp" in sgrp.columns:
                 try:
-                    cd = pd.to_datetime(sgrp["created_datetime"], errors="coerce")
-                    vt = pd.to_datetime(sgrp["validation_timestamp"], errors="coerce")
+                    cd = pd.to_datetime(sgrp["created_datetime"], errors="coerce", utc=True)
+                    vt = pd.to_datetime(sgrp["validation_timestamp"], errors="coerce", utc=True)
                     lag = (vt - cd).dt.total_seconds() / 3600.0
                     lag = lag.dropna()
                     lag = lag[lag >= 0]
@@ -358,13 +361,48 @@ def build_dark_fleet_and_station_stats(
                 except Exception:
                     pass
 
+            # ── Night violations (10 PM – 6 AM) ──────────────────────────
+            night_count = 0
+            peak_hour: Optional[int] = None
+            if "created_datetime" in sgrp.columns:
+                try:
+                    cd = pd.to_datetime(sgrp["created_datetime"], errors="coerce", utc=True)
+                    hrs = cd.dt.hour.dropna()
+                    NIGHT = {22, 23, 0, 1, 2, 3, 4, 5}
+                    night_count = int(hrs.isin(NIGHT).sum())
+                    if len(hrs):
+                        peak_hour = int(hrs.value_counts().idxmax())
+                except Exception:
+                    pass
+
+            # ── Unique locations ──────────────────────────────────────────
+            unique_locs = 0
+            for loc_col in ("location_key", "junction_name"):
+                if loc_col in sgrp.columns:
+                    vals = sgrp[loc_col].dropna().astype(str)
+                    vals = vals[~vals.str.strip().isin(["No Junction", "no junction", "", "nan", "None"])]
+                    unique_locs = int(vals.nunique())
+                    break
+
+            # ── Top junction (human-readable, skip "No Junction" rows) ────
+            top_junction: Optional[str] = None
+            if "junction_name" in sgrp.columns:
+                jn = sgrp["junction_name"].dropna().astype(str)
+                jn = jn[~jn.str.strip().isin(["No Junction", "no junction", "", "nan", "None"])]
+                if len(jn):
+                    top_junction = str(jn.mode().iloc[0])
+
             station_stats.append({
-                "police_station":             str(station),
-                "total_violations":           int(total_v),
-                "rejection_rate":             float(rej_rate),
-                "violations_per_device":      float(vio_per_device),
+                "police_station":              str(station),
+                "total_violations":            int(total_v),
+                "rejection_rate":              float(rej_rate),
+                "violations_per_device":       float(vio_per_device),
                 "median_validation_lag_hours": lag_hours,
-                "flag_high_rejection":        bool(rej_rate > 0.35),
+                "flag_high_rejection":         bool(rej_rate > 0.35),
+                "night_violations":            night_count,
+                "unique_locations":            unique_locs,
+                "peak_hour":                   peak_hour,
+                "top_location":                top_junction,
             })
 
         station_stats.sort(key=lambda x: x["total_violations"], reverse=True)

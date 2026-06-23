@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Query, Request
 from app.schemas import (
+    BatchHourlyRequest,
     DarkFleetRecord,
     HourlyProfileRecord,
     PISRecord,
@@ -78,6 +79,19 @@ async def get_hourly_profile(
     if profile is None:
         return [{"hour": h, "mean_violations": 0.0} for h in range(24)]
     return [{"hour": h, "mean_violations": float(v)} for h, v in enumerate(profile)]
+
+
+@router.post("/hourly-profiles/batch")
+async def get_hourly_profiles_batch(
+    request: Request,
+    body: BatchHourlyRequest,
+) -> Dict[str, List[float]]:
+    """
+    Return 24-hour violation profiles for a list of location_keys in one round-trip.
+    Missing keys get a flat [0.0]*24 profile rather than a 404.
+    """
+    profiles: Dict[str, List[float]] = getattr(request.app.state, "hourly_profiles", {})
+    return {k: profiles.get(k, [0.0] * 24) for k in body.location_keys}
 
 
 @router.get("/persistence")

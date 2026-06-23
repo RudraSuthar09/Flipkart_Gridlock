@@ -6,6 +6,7 @@ import PredictionPage from './pages/PredictionPage';
 import SeverityPage from './pages/SeverityPage';
 import PISPage from './pages/PISPage';
 import ReportsPage from './pages/ReportsPage';
+import RoutePage from './pages/RoutePage';
 import DeploymentPage from './pages/DeploymentPage';
 import Chatbot from './components/Chatbot';
 import './App.css';
@@ -54,6 +55,7 @@ export default function App() {
         {activePage === 'severity'   && <SeverityPage   {...sharedProps} />}
         {activePage === 'pis'        && <PISPage />}
         {activePage === 'reports'    && <ReportsPage />}
+        {activePage === 'route'      && <RoutePage />}
         {activePage === 'deployment' && <DeploymentPage onPredictionsLoaded={setSharedPredictions} />}
       </main>
       {activePage !== 'home' && (
