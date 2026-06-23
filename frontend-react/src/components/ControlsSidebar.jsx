@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Loader2, Moon, Sun, TrendingUp } from 'lucide-react';
+import { Play, Loader2, Moon, Sun, TrendingUp, Clock, Shield, Cpu, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { scoreKey, riskColor, sevRiskColor } from '../utils/colorUtils';
@@ -105,7 +105,7 @@ const ControlsSidebar = ({
         {/* Time Picker */}
         <section className="cs-section">
           <div className="cs-section-header">
-            <span className="cs-section-icon">🕐</span>
+            <Clock size={14} className="cs-section-icon" />
             <h3>Target Time</h3>
           </div>
           <label className="cs-label">
@@ -123,7 +123,7 @@ const ControlsSidebar = ({
         {stationOptions.length > 0 && (
           <section className="cs-section">
             <div className="cs-section-header">
-              <span className="cs-section-icon">🚔</span>
+              <Shield size={14} className="cs-section-icon" />
               <h3>Police Station</h3>
             </div>
             <select
@@ -142,7 +142,7 @@ const ControlsSidebar = ({
         {/* Model Toggle */}
         <section className="cs-section">
           <div className="cs-section-header">
-            <span className="cs-section-icon">🤖</span>
+            <Cpu size={14} className="cs-section-icon" />
             <h3>Model</h3>
           </div>
           <div className="cs-model-row">
@@ -230,7 +230,7 @@ const ControlsSidebar = ({
         {/* Top 20 Hotspots */}
         <section className="cs-section cs-top-section">
           <div className="cs-section-header">
-            <span className="cs-section-icon">🚨</span>
+            <AlertCircle size={14} className="cs-section-icon" />
             <h3>Top 20 Hotspots</h3>
           </div>
           {top20.length === 0 ? (
@@ -265,7 +265,7 @@ const ControlsSidebar = ({
           )}
         </section>
 
-        {error && <div className="cs-error" style={{ margin: '8px 20px 0' }}>⚠ {error}</div>}
+        {error && <div className="cs-error" style={{ margin: '8px 20px 0' }}>{error}</div>}
 
       </div>{/* /cs-scroll-body */}
 
@@ -281,7 +281,7 @@ const ControlsSidebar = ({
           className={`cs-forecast-btn ${showForecast ? 'active' : ''}`}
           onClick={onForecastToggle}
         >
-          📈 {showForecast ? 'Hide 24h Forecast' : '24h Forecast'}
+          <TrendingUp size={13} /> {showForecast ? 'Hide 24h Forecast' : '24h Forecast'}
         </button>
       )}
 
