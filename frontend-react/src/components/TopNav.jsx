@@ -32,6 +32,12 @@ const TopNav = ({ activePage, setActivePage }) => {
           >
             Severity Heatmap
           </button>
+          <button
+            className={`nav-link nav-link-deploy ${activePage === 'deployment' ? 'active' : ''}`}
+            onClick={() => setActivePage('deployment')}
+          >
+            Deployment
+          </button>
           <span className="nav-divider">|</span>
           <a
             href="http://127.0.0.1:8001/docs"

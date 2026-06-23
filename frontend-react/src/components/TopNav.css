@@ -91,6 +91,10 @@
   border-bottom-color: var(--primary-yellow);
 }
 
+.nav-link-deploy.active {
+  border-bottom-color: #3b82f6;
+}
+
 .nav-divider {
   color: var(--border-color);
   font-size: 18px;

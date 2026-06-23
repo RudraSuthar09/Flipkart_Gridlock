@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TopNav from './components/TopNav';
 import PredictionPage from './pages/PredictionPage';
 import SeverityPage from './pages/SeverityPage';
+import DeploymentPage from './pages/DeploymentPage';
 import Chatbot from './components/Chatbot';
 import './App.css';
 
@@ -16,8 +17,10 @@ function App() {
       <main className="main-content">
         {activePage === 'prediction' ? (
           <PredictionPage onPredictionsLoaded={setSharedPredictions} />
-        ) : (
+        ) : activePage === 'severity' ? (
           <SeverityPage onPredictionsLoaded={setSharedPredictions} />
+        ) : (
+          <DeploymentPage onPredictionsLoaded={setSharedPredictions} />
         )}
       </main>
       {/* Global sticky chatbot */}
